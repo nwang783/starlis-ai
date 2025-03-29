@@ -197,3 +197,89 @@ def delete_event(user_id, event_id):
     except Exception as e:
         print(f"An error occurred: {e}")
         return {"error": f"Failed to delete event: {str(e)}"}
+
+def update_event(user_id, event_id, title=None, description=None, start_day=None, end_day=None, 
+                start_time=None, end_time=None, location=None, attendees=None):
+    """
+    Updates an existing event in the user's primary calendar.
+    
+    Parameters:
+      event_id (str): The unique identifier of the event to update.
+      title (str): (Optional) Updated event title.
+      description (str): (Optional) Updated event description.
+      start_day (str): (Optional) Updated start day (MM/DD/YYYY).
+      end_day (str): (Optional) Updated end day (MM/DD/YYYY).
+      start_time (str): (Optional) Updated start time (HH:MM AM/PM).
+      end_time (str): (Optional) Updated end time (HH:MM AM/PM).
+      location (str): (Optional) Updated event location.
+      attendees (list): (Optional) Updated list of email addresses to invite.
+    """
+    print(f"Updating event params: {event_id}, {title}, {description}, {start_day}, {end_day}, {start_time}, {end_time}, {location}, {attendees}")
+    
+    try:
+        service = get_calendar_service(user_id)
+        event = service.events().get(calendarId='primary', eventId=event_id).execute()
+    except Exception as e:
+        print(f"Error retrieving event: {e}")
+        return {"error": f"Failed to retrieve event: {str(e)}"}
+
+    # Update fields if provided
+    if title is not None:
+        event['summary'] = title
+    if description is not None:
+        event['description'] = description
+    if location is not None:
+        event['location'] = location
+        
+    # Update attendees if provided
+    if attendees is not None:
+        event['attendees'] = [{'email': email} for email in attendees]
+        # Set sendUpdates to 'all' when modifying attendees
+        send_updates = 'all'
+    else:
+        send_updates = 'none'
+
+    tz = pytz.timezone('America/New_York')
+    if start_day and start_time:
+        try:
+            start_dt = tz.localize(datetime.strptime(f"{start_day} {start_time}", '%m/%d/%Y %I:%M %p'))
+            event['start'] = {
+                'dateTime': start_dt.isoformat(),
+                'timeZone': 'America/New_York'
+            }
+        except ValueError as e:
+            print("Error parsing start date/time:", e)
+            return {"error": f"Start date/time parsing error: {str(e)}"}
+    if end_day and end_time:
+        try:
+            end_dt = tz.localize(datetime.strptime(f"{end_day} {end_time}", '%m/%d/%Y %I:%M %p'))
+            event['end'] = {
+                'dateTime': end_dt.isoformat(),
+                'timeZone': 'America/New_York'
+            }
+        except ValueError as e:
+            print("Error parsing end date/time:", e)
+            return {"error": f"End date/time parsing error: {str(e)}"}
+
+    try:
+        updated_event = service.events().update(
+            calendarId='primary', 
+            eventId=event_id, 
+            body=event,
+            sendUpdates=send_updates
+        ).execute()
+        
+        print('Event updated: %s' % updated_event.get('htmlLink'))
+        
+        # Return a simplified event object with key information
+        return {
+            'id': updated_event.get('id'),
+            'summary': updated_event.get('summary'),
+            'start': updated_event.get('start', {}).get('dateTime'),
+            'end': updated_event.get('end', {}).get('dateTime'),
+            'location': updated_event.get('location', ''),
+            'link': updated_event.get('htmlLink')
+        }
+    except Exception as e:
+        print(f"Error updating event: {e}")
+        return {"error": f"Failed to update event: {str(e)}"}
