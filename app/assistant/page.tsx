@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { AppSidebar } from "../../components/app-sidebar"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
@@ -10,24 +10,45 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
-import { Calendar, Clock, Phone, Plus, Send } from "lucide-react"
+import { Calendar, Clock, MessageSquare, Phone, Send, Settings } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { saveChatMessage, getChatMessages, createNewChat } from "@/lib/firebase"
 import { getGravatarUrl } from "@/lib/utils"
-import { processAIMessage, executeAIAction, generateAISuggestions } from "@/lib/ai-placeholder"
+import { processAIMessage, executeAIAction } from "@/lib/ai-placeholder"
 
 // Initial welcome message
 const initialMessages = [
   {
     role: "assistant",
-    content: "Hello! I'm your Starlis AI assistant. How can I help you today?",
+    content: "Hello! I'm your Starlis assistant. How can I help you today?",
     timestamp: new Date().toISOString(),
   },
 ]
 
+// Quick action suggestions
+const quickActions = [
+  {
+    text: "Call John about the project",
+    icon: Phone,
+  },
+  {
+    text: "Schedule a meeting for tomorrow",
+    icon: Calendar,
+  },
+  {
+    text: "Send a message to the team",
+    icon: MessageSquare,
+  },
+  {
+    text: "Set a reminder for 3pm",
+    icon: Clock,
+  },
+]
+
 export default function AssistantPage() {
+  const router = useRouter()
   const { user, userData } = useAuth()
   const searchParams = useSearchParams()
   const chatId = searchParams.get("chat")
@@ -36,29 +57,6 @@ export default function AssistantPage() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
-  const [suggestedPrompts, setSuggestedPrompts] = useState<
-    {
-      text: string
-      icon: any
-    }[]
-  >([
-    {
-      text: "Schedule a meeting with the marketing team for tomorrow at 2pm",
-      icon: Calendar,
-    },
-    {
-      text: "Make a phone call to John regarding the project update",
-      icon: Phone,
-    },
-    {
-      text: "Set a reminder for my doctor's appointment next Monday",
-      icon: Clock,
-    },
-    {
-      text: "Draft an email to the client about the project delay",
-      icon: Plus,
-    },
-  ])
   const [suggestedActions, setSuggestedActions] = useState<
     {
       title: string
@@ -115,40 +113,6 @@ export default function AssistantPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
-
-  // Generate dynamic suggestions based on chat context
-  useEffect(() => {
-    const generateSuggestions = async () => {
-      if (!user || messages.length === 0) return
-
-      try {
-        // Get the last few messages for context
-        const recentMessages = messages
-          .slice(-3)
-          .map((msg) => msg.content)
-          .join(" ")
-
-        // Generate suggestions based on context
-        const suggestions = await generateAISuggestions(user.uid, recentMessages)
-
-        // Map suggestions to UI format
-        const icons = [Calendar, Phone, Clock, Plus]
-        setSuggestedPrompts(
-          suggestions.map((text, index) => ({
-            text,
-            icon: icons[index % icons.length],
-          })),
-        )
-      } catch (error) {
-        console.error("Error generating suggestions:", error)
-      }
-    }
-
-    // Only generate new suggestions if we have more than the initial message
-    if (messages.length > 1) {
-      generateSuggestions()
-    }
-  }, [user, messages])
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
@@ -229,6 +193,11 @@ export default function AssistantPage() {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   }
 
+  // Navigate to assistant settings
+  const goToAssistantSettings = () => {
+    router.push("/settings?tab=assistant")
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -246,18 +215,16 @@ export default function AssistantPage() {
             </Breadcrumb>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <a href="/dashboard">
-                <Clock className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">View History</span>
-              </a>
+            <Button variant="outline" size="sm" onClick={goToAssistantSettings}>
+              <Settings className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Assistant Settings</span>
             </Button>
           </div>
         </header>
 
         <div className="flex h-[calc(100vh-4rem)] flex-col gap-4 p-4">
           <div className="grid h-full grid-rows-[1fr,auto]">
-            <Card className="flex flex-col overflow-hidden p-4">
+            <Card className="flex flex-col overflow-hidden p-4 bg-background border-muted">
               <ScrollArea className="flex-1 pr-4">
                 <div className="flex flex-col gap-4">
                   {messages.map((message, index) => (
@@ -267,7 +234,7 @@ export default function AssistantPage() {
                     >
                       {message.role === "assistant" && (
                         <Avatar className="h-8 w-8 mt-1">
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Starlis AI" />
+                          <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Starlis" />
                           <AvatarFallback>AI</AvatarFallback>
                         </Avatar>
                       )}
@@ -288,8 +255,8 @@ export default function AssistantPage() {
                         <Avatar className="h-8 w-8 mt-1">
                           <AvatarImage src={getGravatarUrl(userData.email)} alt={userData.firstName} />
                           <AvatarFallback>
-                            {userData.firstName[0]}
-                            {userData.lastName[0]}
+                            {userData.firstName?.[0]}
+                            {userData.lastName?.[0]}
                           </AvatarFallback>
                         </Avatar>
                       )}
@@ -299,7 +266,7 @@ export default function AssistantPage() {
                   {isLoading && (
                     <div className="flex gap-3 justify-start">
                       <Avatar className="h-8 w-8 mt-1">
-                        <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Starlis AI" />
+                        <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Starlis" />
                         <AvatarFallback>AI</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col gap-1 max-w-[80%]">
@@ -326,9 +293,25 @@ export default function AssistantPage() {
             </Card>
 
             <div className="space-y-4">
+              {/* Quick actions */}
+              <div className="flex flex-wrap gap-2 justify-center">
+                {quickActions.map((action, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="h-auto py-2 px-3 text-sm bg-background hover:bg-muted"
+                    onClick={() => handleSendMessage(action.text)}
+                    disabled={isLoading}
+                  >
+                    <action.icon className="mr-2 h-4 w-4" />
+                    {action.text}
+                  </Button>
+                ))}
+              </div>
+
               {/* Suggested actions from AI response */}
               {suggestedActions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 justify-center">
                   {suggestedActions.map((action, index) => (
                     <Button
                       key={index}
@@ -343,25 +326,9 @@ export default function AssistantPage() {
                 </div>
               )}
 
-              {/* Suggested prompts */}
-              <div className="flex flex-wrap gap-2">
-                {suggestedPrompts.map((prompt, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    className="h-auto py-2 px-3 text-sm"
-                    onClick={() => handleSendMessage(prompt.text)}
-                    disabled={isLoading}
-                  >
-                    <prompt.icon className="mr-2 h-4 w-4" />
-                    {prompt.text}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
+              <div className="flex gap-2 relative">
                 <Input
-                  placeholder="Type your message..."
+                  placeholder="Message Starlis..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -370,14 +337,25 @@ export default function AssistantPage() {
                       handleSendMessage(input)
                     }
                   }}
-                  className="flex-1"
+                  className="flex-1 pl-4 pr-10 py-6 text-base rounded-full border-muted bg-background"
                   disabled={isLoading}
                 />
-                <Button onClick={() => handleSendMessage(input)} disabled={!input.trim() || isLoading}>
+                <Button
+                  onClick={() => handleSendMessage(input)}
+                  disabled={!input.trim() || isLoading}
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 rounded-full w-10 h-10 p-0"
+                >
                   <Send className="h-4 w-4" />
                   <span className="sr-only">Send</span>
                 </Button>
               </div>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Customize your assistant's behavior in{" "}
+                <button onClick={goToAssistantSettings} className="text-primary hover:underline focus:outline-none">
+                  Assistant Settings
+                </button>
+              </p>
             </div>
           </div>
         </div>

@@ -8,8 +8,8 @@ import { AuthProvider } from "@/contexts/auth-context"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Starlis AI - Your Intelligent Assistant",
-  description: "Starlis AI helps you manage emails, schedule meetings, and boost productivity",
+  title: "Starlis - Your Intelligent Assistant",
+  description: "Starlis helps you manage emails, schedule meetings, and boost productivity",
     generator: 'v0.dev'
 }
 

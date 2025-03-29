@@ -1,11 +1,11 @@
-import { initializeApp, getApps, getApp } from "firebase/app"
+import { initializeApp } from "firebase/app"
 import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut,
   GoogleAuthProvider,
   signInWithPopup,
+  signOut,
 } from "firebase/auth"
 import {
   getFirestore,
@@ -15,17 +15,20 @@ import {
   updateDoc,
   serverTimestamp,
   collection,
-  addDoc,
-  query,
-  where,
-  orderBy,
   getDocs,
-  limit,
-  writeBatch,
+  query,
+  orderBy,
 } from "firebase/firestore"
-import { generateRandomString } from "./utils"
+import { generateRandomString } from "@/lib/utils"
+// Add these imports at the top
+import {
+  is2FAVerified,
+  verifyTOTP,
+  verifyRecoveryCode,
+  save2FAVerificationStatus,
+  clear2FAVerificationStatus,
+} from "./2fa"
 
-// Your Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -33,15 +36,14 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp()
+const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const db = getFirestore(app)
-const googleProvider = new GoogleAuthProvider()
 
-// User authentication functions
+// Authentication functions
 export const signUpWithEmail = async (email: string, password: string, firstName: string, lastName: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
@@ -76,6 +78,24 @@ export const signUpWithEmail = async (email: string, password: string, firstName
         discord: false,
         twitter: false,
       },
+      // Onboarding status
+      onboarding: {
+        emailSetupComplete: false,
+        integrationsSetupComplete: false,
+        voiceSetupComplete: false,
+        onboardingComplete: false,
+        integrations: {
+          googleCalendar: false,
+          outlookCalendar: false,
+        },
+        voice: {
+          twilioSid: "",
+          twilioApiKey: "",
+          twilioPhoneNumber: "",
+          elevenLabsApiKey: "",
+          elevenLabsAgentId: "",
+        },
+      },
     })
 
     return user
@@ -84,10 +104,70 @@ export const signUpWithEmail = async (email: string, password: string, firstName
   }
 }
 
+// Modify the signInWithEmail function to handle 2FA
 export const signInWithEmail = async (email: string, password: string) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
-    return userCredential.user
+    const user = userCredential.user
+
+    // Get user data to check if 2FA is enabled
+    const userDoc = await getDoc(doc(db, "users", user.uid))
+    const userData = userDoc.data()
+
+    if (userData?.twoFactorEnabled && !is2FAVerified(user.uid)) {
+      // Return the user credential but include a 2FA flag
+      return { ...userCredential, requiresTwoFactor: true }
+    }
+
+    return userCredential
+  } catch (error) {
+    throw error
+  }
+}
+
+// Add a function to verify 2FA during login
+export const verify2FALogin = async (userId: string, code: string, isRecoveryCode = false) => {
+  try {
+    // Get user data
+    const userRef = doc(db, "users", userId)
+    const userDoc = await getDoc(userRef)
+
+    if (!userDoc.exists()) {
+      throw new Error("User not found")
+    }
+
+    const userData = userDoc.data()
+
+    let verified = false
+
+    if (isRecoveryCode) {
+      verified = await verifyRecoveryCode(userId, code)
+    } else {
+      const secret = userData.twoFactor?.secret || ""
+      verified = verifyTOTP(secret, code)
+    }
+
+    if (!verified) {
+      throw new Error("Invalid verification code")
+    }
+
+    // Save verification status for this session
+    await save2FAVerificationStatus(userId)
+
+    return true
+  } catch (error) {
+    throw error
+  }
+}
+
+// Update the signOutUser function to clear 2FA verification status
+export const signOutUser = async () => {
+  try {
+    const user = auth.currentUser
+    if (user) {
+      clear2FAVerificationStatus(user.uid)
+    }
+    await signOut(auth)
   } catch (error) {
     throw error
   }
@@ -95,80 +175,35 @@ export const signInWithEmail = async (email: string, password: string) => {
 
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider)
-    const user = result.user
-
-    // Check if user exists in Firestore
-    const userDoc = await getDoc(doc(db, "users", user.uid))
-
-    if (!userDoc.exists()) {
-      // Extract name from Google account
-      const nameParts = user.displayName?.split(" ") || ["User", ""]
-      const firstName = nameParts[0]
-      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : ""
-
-      // Generate a Starlis forwarding email
-      const starlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.starlis.${generateRandomString(5)}@mail.starlis.com`
-
-      // Create user profile in Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        userId: user.uid,
-        firstName,
-        lastName,
-        email: user.email,
-        starlisForwardingEmail: starlisEmail,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        // Default SMTP settings (empty)
-        smtpUsername: "",
-        smtpPassword: "",
-        smtpPort: "",
-        smtpServer: "",
-        smtpEncryption: "tls",
-        // Default 2FA settings
-        twoFactorEnabled: false,
-        // Default integration settings
-        integrations: {
-          googleCalendar: false,
-          outlookCalendar: false,
-          appleCalendar: false,
-          gmail: false,
-          discord: false,
-          twitter: false,
-        },
-      })
-    }
-
-    return user
+    const provider = new GoogleAuthProvider()
+    await signInWithPopup(auth, provider)
   } catch (error) {
     throw error
   }
 }
 
-export const signOutUser = async () => {
-  try {
-    await signOut(auth)
-  } catch (error) {
-    throw error
-  }
-}
-
-// User data functions
+// Firestore functions
 export const getUserData = async (userId: string) => {
   try {
-    const userDoc = await getDoc(doc(db, "users", userId))
-    if (userDoc.exists()) {
-      return userDoc.data()
+    const docRef = doc(db, "users", userId)
+    const docSnap = await getDoc(docRef)
+
+    if (docSnap.exists()) {
+      return docSnap.data()
+    } else {
+      console.log("No such document!")
+      return null
     }
-    return null
   } catch (error) {
-    throw error
+    console.error("Error fetching user data:", error)
+    return null
   }
 }
 
 export const updateUserData = async (userId: string, data: any) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
+    const docRef = doc(db, "users", userId)
+    await updateDoc(docRef, {
       ...data,
       updatedAt: serverTimestamp(),
     })
@@ -177,18 +212,10 @@ export const updateUserData = async (userId: string, data: any) => {
   }
 }
 
-export const updateSmtpSettings = async (
-  userId: string,
-  smtpSettings: {
-    smtpUsername: string
-    smtpPassword: string
-    smtpPort: string
-    smtpServer: string
-    smtpEncryption: string
-  },
-) => {
+export const updateSmtpSettings = async (userId: string, smtpSettings: any) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
+    const docRef = doc(db, "users", userId)
+    await updateDoc(docRef, {
       ...smtpSettings,
       updatedAt: serverTimestamp(),
     })
@@ -199,8 +226,9 @@ export const updateSmtpSettings = async (
 
 export const updateIntegrationSettings = async (userId: string, integrations: any) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
-      integrations,
+    const docRef = doc(db, "users", userId)
+    await updateDoc(docRef, {
+      integrations: integrations,
       updatedAt: serverTimestamp(),
     })
   } catch (error) {
@@ -225,7 +253,8 @@ export const regenerateStarlisEmail = async (userId: string, firstName: string, 
 
 export const toggle2FA = async (userId: string, enabled: boolean) => {
   try {
-    await updateDoc(doc(db, "users", userId), {
+    const docRef = doc(db, "users", userId)
+    await updateDoc(docRef, {
       twoFactorEnabled: enabled,
       updatedAt: serverTimestamp(),
     })
@@ -234,54 +263,42 @@ export const toggle2FA = async (userId: string, enabled: boolean) => {
   }
 }
 
-// Chat history functions
-export const saveChatMessage = async (
-  userId: string,
-  message: {
-    role: string
-    content: string
-    timestamp: string
-  },
-) => {
+export const saveChatMessage = async (userId: string, message: any) => {
+  try {
+    const chatRef = doc(collection(db, "users", userId, "chats"))
+    await setDoc(chatRef, message)
+  } catch (error) {
+    throw error
+  }
+}
+
+export const getChatMessages = async (userId: string, chatId: string) => {
   try {
     const chatRef = collection(db, "users", userId, "chats")
-    const activeChatQuery = query(chatRef, where("active", "==", true), orderBy("createdAt", "desc"), limit(1))
-
-    const activeChatSnapshot = await getDocs(activeChatQuery)
-
-    let chatId
-
-    if (activeChatSnapshot.empty) {
-      // Create a new chat
-      const newChatRef = await addDoc(chatRef, {
-        title: message.content.substring(0, 50) + (message.content.length > 50 ? "..." : ""),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        active: true,
-        messageCount: 1,
-      })
-
-      chatId = newChatRef.id
-    } else {
-      // Use existing active chat
-      chatId = activeChatSnapshot.docs[0].id
-
-      // Update the chat
-      await updateDoc(doc(db, "users", userId, "chats", chatId), {
-        updatedAt: serverTimestamp(),
-        messageCount: activeChatSnapshot.docs[0].data().messageCount + 1,
-      })
-    }
-
-    // Add message to the chat
-    await addDoc(collection(db, "users", userId, "chats", chatId, "messages"), {
-      role: message.role,
-      content: message.content,
-      timestamp: message.timestamp,
-      createdAt: serverTimestamp(),
+    const q = query(chatRef, orderBy("timestamp"))
+    const querySnapshot = await getDocs(q)
+    const messages: any[] = []
+    querySnapshot.forEach((doc) => {
+      messages.push(doc.data())
     })
+    return messages
+  } catch (error) {
+    throw error
+  }
+}
 
-    return chatId
+export const createNewChat = async (userId: string) => {
+  try {
+    const chatRef = doc(collection(db, "users", userId, "chats"))
+    const newChatId = chatRef.id
+    await setDoc(doc(db, "users", userId, "chats", newChatId), {
+      id: newChatId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      title: "New Chat",
+      messageCount: 0,
+    })
+    return newChatId
   } catch (error) {
     throw error
   }
@@ -290,59 +307,13 @@ export const saveChatMessage = async (
 export const getChatHistory = async (userId: string) => {
   try {
     const chatRef = collection(db, "users", userId, "chats")
-    const chatQuery = query(chatRef, orderBy("updatedAt", "desc"), limit(10))
-
-    const chatSnapshot = await getDocs(chatQuery)
-
-    return chatSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
-  } catch (error) {
-    throw error
-  }
-}
-
-export const getChatMessages = async (userId: string, chatId: string) => {
-  try {
-    const messagesRef = collection(db, "users", userId, "chats", chatId, "messages")
-    const messagesQuery = query(messagesRef, orderBy("createdAt", "asc"))
-
-    const messagesSnapshot = await getDocs(messagesQuery)
-
-    return messagesSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
-  } catch (error) {
-    throw error
-  }
-}
-
-export const createNewChat = async (userId: string) => {
-  try {
-    // Set all existing chats to inactive
-    const chatRef = collection(db, "users", userId, "chats")
-    const activeChatQuery = query(chatRef, where("active", "==", true))
-    const activeChatSnapshot = await getDocs(activeChatQuery)
-
-    const batch = writeBatch(db)
-    activeChatSnapshot.docs.forEach((doc) => {
-      batch.update(doc.ref, { active: false })
+    const q = query(chatRef, orderBy("updatedAt", "desc"))
+    const querySnapshot = await getDocs(q)
+    const chats: any[] = []
+    querySnapshot.forEach((doc) => {
+      chats.push(doc.data())
     })
-
-    await batch.commit()
-
-    // Create a new active chat
-    const newChatRef = await addDoc(chatRef, {
-      title: "New Chat",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      active: true,
-      messageCount: 0,
-    })
-
-    return newChatRef.id
+    return chats
   } catch (error) {
     throw error
   }

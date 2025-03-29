@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { AppSidebar } from "../../components/app-sidebar"
@@ -13,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, Calendar, Copy, Mail, RefreshCw, Shield } from "lucide-react"
+import { AlertCircle, Calendar, Copy, Mail, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useAuth } from "@/contexts/auth-context"
 import {
@@ -24,6 +26,17 @@ import {
   toggle2FA,
 } from "@/lib/firebase"
 import { useToast } from "@/hooks/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Settings2 } from "lucide-react"
+
+import { TwoFactorSetup } from "@/components/two-factor-setup"
 
 export default function SettingsPage() {
   const { userData, user, refreshUserData } = useAuth()
@@ -35,6 +48,7 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
   const [starlisEmail, setStarlisEmail] = useState("")
   const [smtpSettings, setSmtpSettings] = useState({
     smtpUsername: "",
@@ -52,12 +66,21 @@ export default function SettingsPage() {
     twitter: false,
   })
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [showSmtpModal, setShowSmtpModal] = useState(false)
+  const [smtpFormData, setSmtpFormData] = useState({
+    smtpServer: "",
+    smtpUsername: "",
+    smtpPassword: "",
+    smtpPort: "",
+    smtpEncryption: "tls",
+  })
 
   // Initialize form data from userData
   useEffect(() => {
     if (userData) {
       setFirstName(userData.firstName || "")
       setLastName(userData.lastName || "")
+      setEmail(userData.email || "")
       setStarlisEmail(userData.starlisForwardingEmail || "")
       setSmtpSettings({
         smtpUsername: userData.smtpUsername || "",
@@ -108,31 +131,6 @@ export default function SettingsPage() {
       toast({
         title: "Error",
         description: "Failed to update settings. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSaveSmtpSettings = async () => {
-    if (!user) return
-
-    setIsLoading(true)
-    try {
-      await updateSmtpSettings(user.uid, smtpSettings)
-
-      await refreshUserData()
-
-      toast({
-        title: "SMTP settings updated",
-        description: "Your mail settings have been saved successfully.",
-      })
-    } catch (error) {
-      console.error("Error updating SMTP settings:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update SMTP settings. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -232,6 +230,104 @@ export default function SettingsPage() {
     })
   }
 
+  const handleSmtpInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setSmtpFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleSaveSmtpSettings = async () => {
+    setIsLoading(true)
+    try {
+      if (!user) return
+
+      // Update the SMTP settings in Firebase
+      await updateSmtpSettings(user.uid, smtpFormData)
+
+      // Update local state
+      setSmtpSettings(smtpFormData)
+
+      // Close the modal
+      setShowSmtpModal(false)
+
+      // Show success toast
+      toast({
+        title: "SMTP settings saved",
+        description: "Your SMTP settings have been saved successfully.",
+      })
+
+      // Refresh user data
+      await refreshUserData()
+    } catch (error) {
+      console.error("Error saving SMTP settings:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save SMTP settings. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDisconnectSmtp = async () => {
+    setIsLoading(true)
+    try {
+      if (!user) return
+
+      // Clear SMTP settings in Firebase
+      const emptySettings = {
+        smtpServer: "",
+        smtpUsername: "",
+        smtpPassword: "",
+        smtpPort: "",
+        smtpEncryption: "tls",
+      }
+
+      await updateSmtpSettings(user.uid, emptySettings)
+
+      // Update local state
+      setSmtpSettings(emptySettings)
+      setSmtpFormData(emptySettings)
+
+      // Close the modal
+      setShowSmtpModal(false)
+
+      // Show success toast
+      toast({
+        title: "SMTP disconnected",
+        description: "Your SMTP settings have been removed.",
+      })
+
+      // Refresh user data
+      await refreshUserData()
+    } catch (error) {
+      console.error("Error disconnecting SMTP:", error)
+      toast({
+        title: "Error",
+        description: "Failed to disconnect SMTP. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Add this useEffect to initialize the SMTP form data when the modal opens
+  useEffect(() => {
+    if (showSmtpModal) {
+      setSmtpFormData({
+        smtpServer: smtpSettings.smtpServer,
+        smtpUsername: smtpSettings.smtpUsername,
+        smtpPassword: smtpSettings.smtpPassword,
+        smtpPort: smtpSettings.smtpPort,
+        smtpEncryption: smtpSettings.smtpEncryption,
+      })
+    }
+  }, [showSmtpModal, smtpSettings])
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -243,7 +339,7 @@ export default function SettingsPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Settings</BreadcrumbPage>
+                  <BreadcrumbPage>Starlis Settings</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -255,12 +351,12 @@ export default function SettingsPage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="integrations">Integrations</TabsTrigger>
+              <TabsTrigger value="assistant">Assistant</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
             </TabsList>
-
             <TabsContent value="general" className="mt-4 space-y-4">
               <Card>
                 <CardHeader>
@@ -278,7 +374,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" value={starlisEmail} disabled className="bg-muted" />
+                    <Input id="email" value={email} disabled className="bg-muted" />
                     <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
                   </div>
                   <div className="space-y-2">
@@ -311,13 +407,64 @@ export default function SettingsPage() {
                 </CardFooter>
               </Card>
             </TabsContent>
+            <TabsContent value="assistant" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assistant Settings</CardTitle>
+                  <CardDescription>Configure your AI assistant's behavior and personality</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="assistant-name">Assistant Name</Label>
+                    <Input id="assistant-name" placeholder="Starlis" defaultValue="Starlis" />
+                    <p className="text-xs text-muted-foreground">
+                      This name will be used when the assistant refers to itself
+                    </p>
+                  </div>
 
-            {/* Integrations Tab */}
+                  <div className="space-y-2">
+                    <Label htmlFor="system-prompt">System Prompt</Label>
+                    <textarea
+                      id="system-prompt"
+                      className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity."
+                      defaultValue="You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This prompt defines how the AI assistant behaves and responds
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="temperature">Response Creativity</Label>
+                    <div className="flex items-center space-x-4">
+                      <span className="text-sm text-muted-foreground">Precise</span>
+                      <Input
+                        id="temperature"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        defaultValue="0.7"
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-muted-foreground">Creative</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Adjust how creative or precise the assistant's responses should be
+                    </p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button>Save Changes</Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
             <TabsContent value="integrations" className="mt-4 space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Calendar Integrations</CardTitle>
-                  <CardDescription>Connect your calendars to Starlis AI</CardDescription>
+                  <CardDescription>Connect your calendars to Starlis</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -357,24 +504,80 @@ export default function SettingsPage() {
                       {integrations.outlookCalendar ? "Connected" : "Connect"}
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
 
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <Calendar className="h-5 w-5 text-primary" />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Voice Integrations</CardTitle>
+                  <CardDescription>Configure voice services to enable phone calls and voice responses</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg border p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <svg className="h-6 w-6 text-[#F22F46]" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.8,13.75a1,1,0,0,0-1.39.26,1.24,1.24,0,0,1-1,.53,1.29,1.29,0,0,1-1-.53l-4.94-6.69a3.26,3.26,0,0,0-2.62-1.32,3.23,3.23,0,0,0-2.61,1.32L1.59,11.45a.92.92,0,0,0,.16,1.31.94.94,0,0,0,1.31-.15L5.7,8.48a1.29,1.29,0,0,1,1-.53,1.29,1.29,0,0,1,1,.53L12.7,15.17a3.21,3.21,0,0,0,2.61,1.32,3.2,3.2,0,0,0,2.62-1.32l2.13-2.89A1,1,0,0,0,17.8,13.75Z" />
+                            <path d="M17.25,0H6.75A2.75,2.75,0,0,0,4,2.75v18.5A2.75,2.75,0,0,0,6.75,24h10.5A2.75,2.75,0,0,0,20,21.25V2.75A2.75,2.75,0,0,0,17.25,0ZM12,22a1.25,1.25,0,1,1,1.25-1.25A1.25,1.25,0,0,1,12,22Z" />
+                          </svg>
+                          <h4 className="font-medium">Twilio Integration</h4>
+                        </div>
+                        <span className="text-xs font-medium text-amber-500">Incomplete</span>
                       </div>
-                      <div>
-                        <h4 className="font-medium">Apple Calendar</h4>
-                        <p className="text-sm text-muted-foreground">Sync your Apple Calendar events</p>
+
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="twilioSid">Twilio Account SID</Label>
+                          <Input id="twilioSid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="twilioApiKey">Twilio API Key</Label>
+                          <Input id="twilioApiKey" placeholder="SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="twilioPhoneNumber">Twilio Phone Number</Label>
+                          <Input id="twilioPhoneNumber" placeholder="+1xxxxxxxxxx" />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button>Save Twilio Settings</Button>
                       </div>
                     </div>
-                    <Button
-                      variant={integrations.appleCalendar ? "default" : "outline"}
-                      onClick={() => handleConnectIntegration("appleCalendar")}
-                      disabled={isLoading || integrations.appleCalendar}
-                    >
-                      {integrations.appleCalendar ? "Connected" : "Connect"}
-                    </Button>
+                  </div>
+
+                  <div className="rounded-lg border p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <svg className="h-6 w-6 text-[#5D5AFF]" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" />
+                            <path d="M15,11H13V7a1,1,0,0,0-2,0v5a1,1,0,0,0,1,1h3a1,1,0,0,0,0-2Z" />
+                          </svg>
+                          <h4 className="font-medium">ElevenLabs Integration</h4>
+                        </div>
+                        <span className="text-xs font-medium text-amber-500">Incomplete</span>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="elevenLabsApiKey">ElevenLabs API Key</Label>
+                          <Input id="elevenLabsApiKey" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="elevenLabsAgentId">ElevenLabs Agent ID</Label>
+                          <Input id="elevenLabsAgentId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button>Save ElevenLabs Settings</Button>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -382,7 +585,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Other Integrations</CardTitle>
-                  <CardDescription>Connect other services to enhance Starlis AI</CardDescription>
+                  <CardDescription>Connect other services to enhance Starlis</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -407,64 +610,38 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="flex items-center gap-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <svg
-                          className="h-5 w-5 text-primary"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"
-                            fill="currentColor"
-                          />
-                        </svg>
+                        <Mail className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <h4 className="font-medium">Discord</h4>
-                        <p className="text-sm text-muted-foreground">Connect your Discord account</p>
+                        <h4 className="font-medium">SMTP</h4>
+                        <p className="text-sm text-muted-foreground">Configure SMTP for sending emails</p>
                       </div>
                     </div>
-                    <Button
-                      variant={integrations.discord ? "default" : "outline"}
-                      onClick={() => handleConnectIntegration("discord")}
-                      disabled={isLoading || integrations.discord}
-                    >
-                      {integrations.discord ? "Connected" : "Connect"}
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <svg
-                          className="h-5 w-5 text-primary"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M22.2125 5.65605C21.4491 5.99375 20.6395 6.21555 19.8106 6.31411C20.6839 5.79132 21.3374 4.9689 21.6493 4.00005C20.8287 4.48761 19.9305 4.83077 18.9938 5.01461C18.2031 4.17106 17.098 3.69303 15.9418 3.69434C13.6326 3.69434 11.7597 5.56661 11.7597 7.87683C11.7597 8.20458 11.7973 8.52242 11.8676 8.82909C8.39047 8.65404 5.31007 6.99005 3.24678 4.45941C2.87529 5.09767 2.68005 5.82318 2.68104 6.56167C2.68104 8.01259 3.4196 9.29324 4.54149 10.043C3.87737 10.022 3.22788 9.84264 2.64718 9.51973C2.64654 9.5373 2.64654 9.55487 2.64654 9.57148C2.64654 11.5984 4.08819 13.2892 6.00199 13.6731C5.64211 13.7703 5.27175 13.8194 4.90023 13.8191C4.62997 13.8191 4.36718 13.7942 4.11149 13.7453C4.64687 15.4065 6.18851 16.6159 8.0197 16.6491C6.53465 17.8118 4.70545 18.4426 2.82446 18.4399C2.49339 18.4399 2.1692 18.4209 1.84961 18.3831C3.69308 19.6102 5.85646 20.2625 8.11811 20.2591C15.9316 20.2591 20.1987 13.8866 20.1987 8.36101C20.1987 8.1803 20.1941 7.99771 20.186 7.81789C21.0141 7.22489 21.7383 6.49211 22.31 5.65708L22.2125 5.65605Z"
-                            fill="currentColor"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-medium">Twitter</h4>
-                        <p className="text-sm text-muted-foreground">Connect your Twitter account</p>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      {smtpSettings.smtpServer ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setShowSmtpModal(true)}
+                            title="Edit SMTP Settings"
+                          >
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="default" disabled>
+                            Connected
+                          </Button>
+                        </>
+                      ) : (
+                        <Button variant="outline" onClick={() => setShowSmtpModal(true)}>
+                          Connect
+                        </Button>
+                      )}
                     </div>
-                    <Button
-                      variant={integrations.twitter ? "default" : "outline"}
-                      onClick={() => handleConnectIntegration("twitter")}
-                      disabled={isLoading || integrations.twitter}
-                    >
-                      {integrations.twitter ? "Connected" : "Connect"}
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
-
             {/* Mail Settings Tab */}
             <TabsContent value="mail" className="mt-4 space-y-4">
               <Card>
@@ -477,7 +654,7 @@ export default function SettingsPage() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Your Forwarding Email Address</AlertTitle>
                     <AlertDescription>
-                      Forward your emails to this address to have them processed by Starlis AI.
+                      Forward your emails to this address to have them processed by Starlis.
                     </AlertDescription>
                   </Alert>
 
@@ -521,8 +698,9 @@ export default function SettingsPage() {
                       <Input
                         id="smtp-server"
                         placeholder="smtp.example.com"
-                        value={smtpSettings.smtpServer}
-                        onChange={(e) => setSmtpSettings({ ...smtpSettings, smtpServer: e.target.value })}
+                        name="smtpServer"
+                        value={smtpFormData.smtpServer}
+                        onChange={handleSmtpInputChange}
                       />
                     </div>
                     <div className="space-y-2">
@@ -530,8 +708,9 @@ export default function SettingsPage() {
                       <Input
                         id="smtp-port"
                         placeholder="587"
-                        value={smtpSettings.smtpPort}
-                        onChange={(e) => setSmtpSettings({ ...smtpSettings, smtpPort: e.target.value })}
+                        name="smtpPort"
+                        value={smtpFormData.smtpPort}
+                        onChange={handleSmtpInputChange}
                       />
                     </div>
                     <div className="space-y-2">
@@ -539,8 +718,9 @@ export default function SettingsPage() {
                       <Input
                         id="smtp-username"
                         placeholder="username@example.com"
-                        value={smtpSettings.smtpUsername}
-                        onChange={(e) => setSmtpSettings({ ...smtpSettings, smtpUsername: e.target.value })}
+                        name="smtpUsername"
+                        value={smtpFormData.smtpUsername}
+                        onChange={handleSmtpInputChange}
                       />
                     </div>
                     <div className="space-y-2">
@@ -549,15 +729,16 @@ export default function SettingsPage() {
                         id="smtp-password"
                         type="password"
                         placeholder="••••••••"
-                        value={smtpSettings.smtpPassword}
-                        onChange={(e) => setSmtpSettings({ ...smtpSettings, smtpPassword: e.target.value })}
+                        name="smtpPassword"
+                        value={smtpFormData.smtpPassword}
+                        onChange={handleSmtpInputChange}
                       />
                     </div>
                     <div className="space-y-2 col-span-2">
                       <Label htmlFor="smtp-encryption">Encryption</Label>
                       <Select
-                        value={smtpSettings.smtpEncryption}
-                        onValueChange={(value) => setSmtpSettings({ ...smtpSettings, smtpEncryption: value })}
+                        value={smtpFormData.smtpEncryption}
+                        onValueChange={(value) => setSmtpFormData({ ...smtpFormData, smtpEncryption: value })}
                       >
                         <SelectTrigger id="smtp-encryption">
                           <SelectValue placeholder="Select encryption" />
@@ -640,32 +821,15 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-
             <TabsContent value="security" className="mt-4 space-y-4">
+              <TwoFactorSetup />
+
               <Card>
                 <CardHeader>
-                  <CardTitle>Security Settings</CardTitle>
-                  <CardDescription>Manage your account security</CardDescription>
+                  <CardTitle>Password Settings</CardTitle>
+                  <CardDescription>Update your account password</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="2fa">Two-Factor Authentication</Label>
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
-                    </div>
-                    <Switch
-                      id="2fa"
-                      checked={twoFactorEnabled}
-                      onCheckedChange={handleToggle2FA}
-                      disabled={isLoading}
-                    />
-                  </div>
-
-                  <Separator />
-
                   <div className="space-y-2">
                     <Label htmlFor="current-password">Current Password</Label>
                     <Input id="current-password" type="password" />
@@ -686,6 +850,96 @@ export default function SettingsPage() {
           </Tabs>
         </div>
       </SidebarInset>
+
+      <Dialog open={showSmtpModal} onOpenChange={setShowSmtpModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{smtpSettings.smtpServer ? "Edit SMTP Settings" : "Connect SMTP"}</DialogTitle>
+            <DialogDescription>
+              Configure your SMTP settings to enable Starlis to send emails on your behalf.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="smtp-server">SMTP Server</Label>
+              <Input
+                id="smtp-server"
+                name="smtpServer"
+                placeholder="smtp.example.com"
+                value={smtpFormData.smtpServer}
+                onChange={handleSmtpInputChange}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="smtp-username">SMTP Username</Label>
+                <Input
+                  id="smtp-username"
+                  name="smtpUsername"
+                  placeholder="username@example.com"
+                  value={smtpFormData.smtpUsername}
+                  onChange={handleSmtpInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="smtp-password">SMTP Password</Label>
+                <Input
+                  id="smtp-password"
+                  name="smtpPassword"
+                  type="password"
+                  placeholder={smtpSettings.smtpPassword ? "••••••••" : "Enter password"}
+                  value={smtpFormData.smtpPassword}
+                  onChange={handleSmtpInputChange}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="smtp-port">SMTP Port</Label>
+                <Input
+                  id="smtp-port"
+                  name="smtpPort"
+                  placeholder="587"
+                  value={smtpFormData.smtpPort}
+                  onChange={handleSmtpInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="smtp-encryption">Encryption</Label>
+                <Select
+                  name="smtpEncryption"
+                  value={smtpFormData.smtpEncryption}
+                  onValueChange={(value) => setSmtpFormData((prev) => ({ ...prev, smtpEncryption: value }))}
+                >
+                  <SelectTrigger id="smtp-encryption">
+                    <SelectValue placeholder="Select encryption" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="ssl">SSL/TLS</SelectItem>
+                    <SelectItem value="tls">STARTTLS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex justify-between">
+            {smtpSettings.smtpServer && (
+              <Button variant="destructive" onClick={handleDisconnectSmtp} disabled={isLoading}>
+                Disconnect
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowSmtpModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveSmtpSettings} disabled={isLoading}>
+                {isLoading ? "Saving..." : "Save Settings"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   )
 }
