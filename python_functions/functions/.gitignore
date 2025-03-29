@@ -1,2 +1,3 @@
 *.local
 venv
+starlis_admin_creds.json
