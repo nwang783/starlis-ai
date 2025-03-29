@@ -116,3 +116,13 @@ def generate_unique_id(length=8):
     
     characters = string.ascii_lowercase + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
+
+@https_fn.on_request(
+    cors=options.CorsOptions(
+        cors_origins=["*"],
+        cors_methods=["GET", "POST"]
+    )
+)
+def process_sendgrid_inbound_email(request: Request) -> Response:
+    pass
+
