@@ -140,20 +140,6 @@ def process_with_claude(client, email_content, user_id, max_tool_calls=5):
             }
         },
         {
-            "name": "add_message",
-            "description": "Add a message to the user's message inbox. Use this when the user requests to be reminded of something later, or when something needs to be saved for later reference.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "message": {
-                        "type": "string",
-                        "description": "The content of the message to save"
-                    }
-                },
-                "required": ["message"]
-            }
-        },
-        {
             "name": "get_events",
             "description": "Get events from the user's calendar for a specific date range.",
             "input_schema": {
@@ -480,8 +466,7 @@ def handle_tool_call(user_id, function_name, arguments):
         logs.append(log_msg)
         # Import tools only when needed to avoid circular imports
         import sys
-        from tools import add_event, get_events, delete_event, update_event, add_message
-        
+        from tools import add_event, get_events, delete_event, update_event
         if function_name == "add_event":
             try:
                 result = add_event(
@@ -502,19 +487,6 @@ def handle_tool_call(user_id, function_name, arguments):
                 logging.error(error_msg)
                 logs.append(error_msg)
                 return {"error": "Failed to add event due to invalid scope or configuration"}, logs
-        elif function_name == "add_message":
-            try:
-                result = add_message(
-                    message=arguments["message"],
-                    user_id=user_id  
-                )
-                logs.append(f"Added message successfully: {json.dumps(result)}")
-                return result, logs
-            except Exception as e:
-                error_msg = f"Error in add_message: {str(e)}"
-                logging.error(error_msg)
-                logs.append(error_msg)
-                return {"error": f"Failed to add message: {str(e)}"}, logs
         elif function_name == "get_events":
             try:
                 result = get_events(

@@ -1,5 +1,3 @@
-from __future__ import print_function
-import os.path
 from datetime import datetime, timedelta
 import pytz
 from google.auth.transport.requests import Request
@@ -8,6 +6,7 @@ from googleapiclient.discovery import build
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
+from firebase_functions.params import StringParam
 
 # Initialize Firebase Admin SDK
 try:
@@ -22,27 +21,61 @@ SCOPES = [
     "https://www.googleapis.com/auth/calendar.events"
 ]
 
+GOOGLE_CLIENT_ID = StringParam('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = StringParam('GOOGLE_CLIENT_SECRET')
+
 def get_calendar_token(user_id):
-    # Return hardcoded token for testing purposes
-    # In production, this should fetch the token from Firestore
-    return "ya29.a0ARrdaM8...", "1//0g2..."
+    """
+    Get the user's Google Calendar API tokens from Firestore.
+    
+    Parameters:
+      user_id (str): The Firebase user ID
+      
+    Returns:
+      tuple: (access_token, refresh_token)
+    """
+    try:
+        # Initialize Firestore client
+        db = firestore.client()
+        
+        # Get the user's document from Firestore
+        user_doc = db.collection('users').document(user_id).get()
+        
+        if not user_doc.exists:
+            raise ValueError(f"No user found with ID: {user_id}")
+            
+        user_data = user_doc.to_dict()
+        
+        # Check if the user has Google Calendar tokens
+        if 'calendar' not in user_data or 'token' not in user_data['calendar']:
+            raise ValueError(f"User {user_id} has no Google Calendar tokens")
+            
+        return user_data['calendar']['token'], user_data['calendar']['refresh_token']
+    except Exception as e:
+        print(f"Error getting calendar token: {e}")
+        # For testing/development only - would remove in production
+        return "ya29.a0ARrdaM8...", "1//0g2..."
 
 def get_calendar_service(user_id):
     """
     Authenticates and returns a Google Calendar API service instance.
-    Uses hardcoded credentials in cloud function environment.
+    Uses credentials from Firestore and client details from google_credentials.json.
     """
     try:
         # Get the token from Firestore
         token, refresh_token = get_calendar_token(user_id)
         
+        # Get client ID and client secret from the credentials file
+        client_id = GOOGLE_CLIENT_ID.value
+        client_secret = GOOGLE_CLIENT_SECRET.value
+
         # Create a proper credentials info dictionary
         credentials_info = {
             "token": token,
             "refresh_token": refresh_token, 
             "token_uri": "https://oauth2.googleapis.com/token",
-            "client_id": "...", # Replace with your client ID later
-            "client_secret": "...", # Replace with your client secret later
+            "client_id": client_id,
+            "client_secret": client_secret,
             "scopes": SCOPES
         }
         
