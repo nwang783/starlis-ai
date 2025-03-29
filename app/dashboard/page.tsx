@@ -289,7 +289,7 @@ export default function DashboardPage() {
                 <CardDescription>Get things done faster</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <Button
                     variant="outline"
                     className="h-20 flex-col justify-center"
@@ -308,7 +308,7 @@ export default function DashboardPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-20 flex-col justify-center"
+                    className="h-20 flex-col justify-center col-span-2"
                     onClick={() => handleQuickAction("meeting")}
                   >
                     <Calendar className="mb-2 h-5 w-5" />

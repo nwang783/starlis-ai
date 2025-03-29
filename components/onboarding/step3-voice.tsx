@@ -122,7 +122,7 @@ export function Step3VoiceSetup({
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Setting up voice capabilities allows Vox AI to:</p>
+            <p className="text-sm text-muted-foreground">Setting up voice capabilities allows Starlis to:</p>
             <ul className="ml-6 list-disc text-sm text-muted-foreground space-y-2">
               <li>Make and receive phone calls on your behalf</li>
               <li>Use natural-sounding voice for responses</li>
@@ -280,7 +280,7 @@ export function Step3VoiceSetup({
           <AlertDialogHeader>
             <AlertDialogTitle>Limited Voice Functionality</AlertDialogTitle>
             <AlertDialogDescription>
-              Without voice setup, Vox AI will not be able to make or receive phone calls or use voice responses. You
+              Without voice setup, Starlis will not be able to make or receive phone calls or use voice responses. You
               will still be able to use text-based communication through email and chat. You can always set up voice
               capabilities later from your dashboard settings.
             </AlertDialogDescription>

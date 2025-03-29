@@ -239,12 +239,11 @@ export const updateIntegrationSettings = async (userId: string, integrations: an
 export const regenerateStarlisEmail = async (userId: string, firstName: string, lastName: string) => {
   try {
     const newStarlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.starlis.${generateRandomString(5)}@mail.starlis.com`
-
-    await updateDoc(doc(db, "users", userId), {
+    const docRef = doc(db, "users", userId)
+    await updateDoc(docRef, {
       starlisForwardingEmail: newStarlisEmail,
       updatedAt: serverTimestamp(),
     })
-
     return newStarlisEmail
   } catch (error) {
     throw error

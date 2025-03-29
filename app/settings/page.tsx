@@ -339,7 +339,7 @@ export default function SettingsPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Starlis Settings</BreadcrumbPage>
+                  <BreadcrumbPage>Settings</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

@@ -2,6 +2,7 @@
 
 import type * as React from "react"
 import { BarChart3, Phone, PieChart, Settings2 } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 import { NavPlatform } from "./nav-main"
 import { NavConversations } from "./nav-projects"
@@ -12,6 +13,7 @@ import { useAuth } from "@/contexts/auth-context"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { userData } = useAuth()
+  const pathname = usePathname()
 
   // Default data for navigation
   const data = {
@@ -20,22 +22,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Dashboard",
         url: "/dashboard",
         icon: PieChart,
-        isActive: true,
+        isActive: pathname === "/dashboard",
       },
       {
         title: "Calls",
         url: "/calls",
         icon: Phone,
+        isActive: pathname === "/calls",
       },
       {
         title: "Usage",
         url: "/usage",
         icon: BarChart3,
+        isActive: pathname === "/usage",
       },
       {
         title: "Settings",
         url: "/settings",
         icon: Settings2,
+        isActive: pathname === "/settings" || pathname.startsWith("/settings/"),
         items: [
           {
             title: "General",

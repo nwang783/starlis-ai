@@ -5,13 +5,14 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { AlertCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { GoogleLoginButton } from "@/components/google-login-button"
 import { signInWithEmail, getUserData } from "@/lib/firebase"
-import { Loader2 } from "lucide-react"
 import { TwoFactorAuthModal } from "@/components/two-factor-auth-modal"
 
 export default function LoginPage() {
@@ -81,71 +82,89 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
+    <div className="flex h-screen w-full flex-col items-center justify-center">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="flex flex-col space-y-2 text-center">
           <div className="flex justify-center mb-4">
             <div className="size-12 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">STARLIS</span>
+              <span className="text-primary-foreground font-bold text-lg">STAR</span>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Sign in to your account</CardTitle>
-          <CardDescription>Enter your email and password to sign in to your account</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="/forgot-password" className="text-xs text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && <div className="text-sm text-destructive">{error}</div>}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isLoading ? "Signing in..." : "Sign in"}
-            </Button>
+          <h1 className="text-2xl font-semibold tracking-tight">Welcome to Starlis</h1>
+          <p className="text-sm text-muted-foreground">Enter your email to sign in to your account</p>
+        </div>
+        <Card className="rounded-xl">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-xl">Sign in</CardTitle>
+            <CardDescription>Choose your preferred sign in method</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <GoogleLoginButton />
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
-            <GoogleLoginButton />
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-2">
+                <div className="grid gap-1">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    placeholder="name@example.com"
+                    type="email"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    autoCorrect="off"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    placeholder="••••••••"
+                    type="password"
+                    autoCapitalize="none"
+                    autoComplete="current-password"
+                    autoCorrect="off"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <Button disabled={isLoading}>{isLoading ? "Signing in..." : "Sign In"}</Button>
+              </div>
+            </form>
           </CardContent>
-        </form>
-        <CardFooter className="flex justify-center">
-          <div className="text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </div>
-        </CardFooter>
-      </Card>
+          <CardFooter className="flex flex-col">
+            <div className="mt-2 text-center text-sm text-muted-foreground">
+              <Link href="/forgot-password" className="underline underline-offset-4 hover:text-primary">
+                Forgot password?
+              </Link>
+            </div>
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
+                Sign up
+              </Link>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
       {showTwoFactorAuth && (
         <TwoFactorAuthModal
           userId={currentUserId}

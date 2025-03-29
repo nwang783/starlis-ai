@@ -152,7 +152,7 @@ export default function OnboardingPage() {
         <div className="container flex h-16 items-center px-4">
           <div className="flex items-center space-x-2">
             <div className="size-8 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">STARLIS</span>
+              <span className="text-primary-foreground font-bold text-sm">STAR</span>
             </div>
             <span className="font-bold text-xl">Starlis</span>
           </div>
