@@ -1,7 +1,7 @@
 from flask import Request, Response
 import json
-import sendgrid
-from sendgrid.helpers.mail import Mail, Email, To, Content
+import sendgrid # type: ignore
+from sendgrid.helpers.mail import Mail, Email, To, Content # type: ignore
 from firebase_functions.params import StringParam
 
 # Initialize SendGrid API key and domain
@@ -226,3 +226,54 @@ def send_email_response(to_email, from_email, subject, content, message_id=None,
     except Exception as e:
         print(f"Error sending email: {str(e)}")
         return False
+    
+def format_email_response(text):
+    """
+    Format raw text response into HTML email format.
+    This function handles converting plain text into proper HTML email format.
+    """
+    import re
+    
+    # Handle case where text might already have HTML
+    if "<html>" in text.lower() or "<body>" in text.lower() or "<p>" in text.lower():
+        return text  # Already has HTML formatting
+    
+    # Remove any potential HTML tags for safety (in case of partial tags)
+    text = re.sub(r'<[^>]*>', '', text)
+    
+    # Split by double newlines to identify paragraphs
+    paragraphs = text.split('\n\n')
+    paragraphs = [p for p in paragraphs if p.strip()]
+    
+    # Process each paragraph
+    formatted_paragraphs = []
+    for i, paragraph in enumerate(paragraphs):
+        # Check if this is a greeting (first paragraph, ends with comma or similar)
+        if i == 0 and (paragraph.endswith(',') or paragraph.endswith(':') or len(paragraph.split()) <= 5):
+            formatted_paragraphs.append(f"<p>{paragraph}</p>")
+        # Check if this is a sign-off (typically at the end, 1-2 words)
+        elif i == len(paragraphs) - 1 and len(paragraph.split()) <= 3:
+            formatted_paragraphs.append(f"<p>{paragraph},<br>AI Secretary</p>")
+        # Check if this might be a list
+        elif paragraph.strip().startswith('-') or paragraph.strip().startswith('*'):
+            lines = paragraph.split('\n')
+            list_items = [f"<li>{line.strip('- *')}</li>" for line in lines if line.strip()]
+            formatted_paragraphs.append(f"<ul>{''.join(list_items)}</ul>")
+        # Regular paragraph
+        else:
+            # Handle single line breaks within paragraphs
+            lines = paragraph.split('\n')
+            if len(lines) > 1:
+                paragraph = '<br>'.join(lines)
+            formatted_paragraphs.append(f"<p>{paragraph}</p>")
+    
+    # Assemble the HTML email
+    html_email = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        {"".join(formatted_paragraphs)}
+    </body>
+    </html>
+    """
+    
+    return html_email 
