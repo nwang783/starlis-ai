@@ -11,135 +11,137 @@ import {
   Map,
   PieChart,
   Settings2,
-  Users,
+  SquareTerminal,
 } from "lucide-react"
 
+import { NavMain } from "./nav-main"
+import { NavProjects } from "./nav-projects"
+import { NavUser } from "./nav-user"
+import { TeamSwitcher } from "./team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
 
-// This is sample data.
+// Update the data object to include Starlis AI specific navigation
 const data = {
   user: {
-    name: "John Doe",
-    email: "john@example.com",
+    name: "Alex Johnson",
+    email: "alex@example.com",
     avatar: "/placeholder.svg?height=40&width=40",
   },
   teams: [
     {
-      name: "Personal",
+      name: "Starlis AI",
       logo: GalleryVerticalEnd,
-      plan: "Pro",
-    },
-    {
-      name: "Acme Inc",
-      logo: AudioWaveform,
       plan: "Enterprise",
     },
     {
-      name: "Startup Co.",
+      name: "Personal",
+      logo: AudioWaveform,
+      plan: "Pro",
+    },
+    {
+      name: "Team Alpha",
       logo: Command,
       plan: "Free",
     },
   ],
   navMain: [
     {
-      title: "Assistant",
+      title: "Dashboard",
       url: "/dashboard",
-      icon: Bot,
+      icon: PieChart,
       isActive: true,
       items: [
         {
-          title: "Chat History",
-          url: "/dashboard/history",
+          title: "Overview",
+          url: "/dashboard",
         },
         {
-          title: "Saved Chats",
-          url: "/dashboard/saved",
+          title: "Analytics",
+          url: "#",
+        },
+        {
+          title: "Settings",
+          url: "#",
         },
       ],
     },
     {
-      title: "Meetings",
-      url: "/dashboard/meetings",
-      icon: Command,
+      title: "Starlis Assistant",
+      url: "/assistant",
+      icon: Bot,
       items: [
         {
-          title: "Upcoming",
-          url: "/dashboard/meetings/upcoming",
+          title: "Chat",
+          url: "/assistant",
         },
         {
-          title: "Past",
-          url: "/dashboard/meetings/past",
+          title: "History",
+          url: "#",
         },
         {
-          title: "Calendar",
-          url: "/dashboard/meetings/calendar",
+          title: "Saved Prompts",
+          url: "#",
         },
       ],
     },
     {
-      title: "Emails",
-      url: "/dashboard/emails",
+      title: "Calendar",
+      url: "#",
       icon: BookOpen,
       items: [
         {
-          title: "Inbox",
-          url: "/dashboard/emails/inbox",
+          title: "Meetings",
+          url: "#",
         },
         {
-          title: "Sent",
-          url: "/dashboard/emails/sent",
+          title: "Scheduling",
+          url: "#",
         },
         {
-          title: "Drafts",
-          url: "/dashboard/emails/drafts",
+          title: "Reminders",
+          url: "#",
         },
       ],
     },
     {
-      title: "Users",
-      url: "/dashboard/users",
-      icon: Users,
-      items: [],
-    },
-    {
       title: "Settings",
-      url: "/dashboard/settings",
+      url: "#",
       icon: Settings2,
       items: [
         {
           title: "General",
-          url: "/dashboard/settings/general",
+          url: "#",
         },
         {
-          title: "Integrations",
-          url: "/dashboard/settings/integrations",
+          title: "Team",
+          url: "#",
         },
         {
           title: "Billing",
-          url: "/dashboard/settings/billing",
+          url: "#",
+        },
+        {
+          title: "API",
+          url: "#",
         },
       ],
     },
   ],
   projects: [
     {
-      name: "Voice Calls",
-      url: "/dashboard/voice",
+      name: "Email Management",
+      url: "#",
       icon: Frame,
     },
     {
-      name: "Analytics",
-      url: "/dashboard/analytics",
-      icon: PieChart,
+      name: "Meeting Notes",
+      url: "#",
+      icon: Map,
     },
     {
-      name: "Extensions",
-      url: "/dashboard/extensions",
-      icon: Map,
+      name: "Task Tracking",
+      url: "#",
+      icon: SquareTerminal,
     },
   ],
 }
