@@ -1,2 +1,5 @@
 *.local
 venv
+starlis_admin_creds.json
+google_credentials.json
+token.*
