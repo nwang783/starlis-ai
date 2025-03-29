@@ -130,3 +130,54 @@ def add_event(user_id, title, description, start_day, end_day, start_time, end_t
         print(f"Error creating event: {str(e)}")
         return {"error": f"Failed to create event: {str(e)}"}
 
+def get_events(user_id, start_day, end_day):
+    """
+    Retrieves events from the user's primary calendar within a specific date range.
+    
+    Parameters:
+      start_day (str): Start day for the query period (MM/DD/YYYY).
+      end_day (str): End day for the query period (MM/DD/YYYY).
+      
+    Returns:
+      List of events.
+    """
+    print(f"Getting events from {start_day} to {end_day}")
+    tz = pytz.timezone('America/New_York')
+    try:
+        start_dt = tz.localize(datetime.strptime(start_day, '%m/%d/%Y').replace(hour=0, minute=0, second=0))
+        end_dt = tz.localize(datetime.strptime(end_day, '%m/%d/%Y').replace(hour=23, minute=59, second=59))
+    except ValueError as e:
+        print("Error parsing dates:", e)
+        return {"error": f"Date parsing error: {str(e)}"}
+
+    try:
+        service = get_calendar_service(user_id)
+        events_result = service.events().list(
+            calendarId='primary',
+            timeMin=start_dt.isoformat(),
+            timeMax=end_dt.isoformat(),
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        events = events_result.get('items', [])
+        
+        if not events:
+            print('No events found.')
+            return []
+        
+        # Return simplified event objects with key information
+        simplified_events = []
+        for event in events:
+            simplified_events.append({
+                'id': event.get('id'),
+                'summary': event.get('summary', 'No Title'),
+                'start': event['start'].get('dateTime', event['start'].get('date')),
+                'end': event['end'].get('dateTime', event['end'].get('date')),
+                'location': event.get('location', ''),
+                'description': event.get('description', '')
+            })
+        
+        return simplified_events
+    except Exception as e:
+        print(f"Error retrieving events: {str(e)}")
+        return {"error": f"Failed to retrieve events: {str(e)}"}
