@@ -1,163 +1,91 @@
 "use client"
 
 import type * as React from "react"
-import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
-} from "lucide-react"
+import { BarChart3, Phone, PieChart, Settings2 } from "lucide-react"
 
-import { NavMain } from "./nav-main"
-import { NavProjects } from "./nav-projects"
+import { NavPlatform } from "./nav-main"
+import { NavConversations } from "./nav-projects"
 import { NavUser } from "./nav-user"
 import { TeamSwitcher } from "./team-switcher"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
-
-// Update the data object to include Starlis AI specific navigation
-const data = {
-  user: {
-    name: "Alex Johnson",
-    email: "alex@example.com",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  teams: [
-    {
-      name: "Starlis AI",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Personal",
-      logo: AudioWaveform,
-      plan: "Pro",
-    },
-    {
-      name: "Team Alpha",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: PieChart,
-      isActive: true,
-      items: [
-        {
-          title: "Overview",
-          url: "/dashboard",
-        },
-        {
-          title: "Analytics",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Starlis Assistant",
-      url: "/assistant",
-      icon: Bot,
-      items: [
-        {
-          title: "Chat",
-          url: "/assistant",
-        },
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Saved Prompts",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Calendar",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Meetings",
-          url: "#",
-        },
-        {
-          title: "Scheduling",
-          url: "#",
-        },
-        {
-          title: "Reminders",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "API",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Email Management",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Meeting Notes",
-      url: "#",
-      icon: Map,
-    },
-    {
-      name: "Task Tracking",
-      url: "#",
-      icon: SquareTerminal,
-    },
-  ],
-}
+import { useAuth } from "@/contexts/auth-context"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { userData } = useAuth()
+
+  // Default data for navigation
+  const data = {
+    navMain: [
+      {
+        title: "Dashboard",
+        url: "/dashboard",
+        icon: PieChart,
+        isActive: true,
+      },
+      {
+        title: "Calls",
+        url: "/calls",
+        icon: Phone,
+      },
+      {
+        title: "Usage",
+        url: "/usage",
+        icon: BarChart3,
+      },
+      {
+        title: "Settings",
+        url: "/settings",
+        icon: Settings2,
+        items: [
+          {
+            title: "General",
+            url: "/settings",
+          },
+          {
+            title: "Integrations",
+            url: "/settings?tab=integrations",
+          },
+          {
+            title: "Mail Settings",
+            url: "/settings?tab=mail",
+          },
+          {
+            title: "Security",
+            url: "/settings?tab=security",
+          },
+        ],
+      },
+    ],
+    projects: [
+      {
+        name: "How to implement authentication in Next.js?",
+        url: "/assistant?chat=1",
+        id: "1",
+      },
+      {
+        name: "Explain database indexing strategies",
+        url: "/assistant?chat=2",
+        id: "2",
+      },
+      {
+        name: "Help me debug my React component",
+        url: "/assistant?chat=3",
+        id: "3",
+      },
+    ],
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavConversations projects={data.projects} />
+        <NavPlatform items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
