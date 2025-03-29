@@ -5,6 +5,7 @@ from firebase_functions import https_fn, options
 from firebase_admin import credentials, firestore
 import firebase_admin
 from firebase_functions.params import StringParam
+from email_utils import parse_sendgrid_inbound_email, extract_secretary_id_from_email, get_secretary_info, log_task, send_email_response
 
 
 # Initialize Firebase Admin SDK
@@ -124,5 +125,80 @@ def generate_unique_id(length=8):
     )
 )
 def process_sendgrid_inbound_email(request: Request) -> Response:
-    pass
+    """
+    Process incoming emails from SendGrid's Inbound Parse webhook.
+    
+    Expected payload format from SendGrid:
+    - Headers and email content in multipart form data or JSON
+    - Attachments (if any)
+    
+    Function will:
+    1. Parse the incoming email
+    2. Identify which AI secretary should handle it
+    3. Log the request in Firestore
+    4. Process with AI
+    5. Send a response email
+    """
+    try:
+        # Parse the incoming email from SendGrid's webhook
+        email_data = parse_sendgrid_inbound_email(request)
+        if not email_data:
+            return Response("Invalid email data", status=400)
+        
+        # Extract relevant information
+        to_address = email_data.get('to', '')
+        from_address = email_data.get('from', '')
+        subject = email_data.get('subject', '(No Subject)')
+        text_content = email_data.get('text', '')
+        print(f"Email content (text): {text_content}")
+        html_content = email_data.get('html', '')
+        
+        # Extract message ID and references for threading
+        message_id = email_data.get('message_id')
+        references = email_data.get('references')
+        
+        # Get the AI secretary ID from the email address
+        # ai_secretary_id = extract_secretary_id_from_email(to_address, SENDING_DOMAIN.value)
+        # if not ai_secretary_id:
+        #     print(f"Could not extract AI secretary ID from: {to_address}")
+        #     return Response("Invalid recipient", status=400)
+        
+        # # Look up the secretary info in Firestore
+        # secretary_info = get_secretary_info(ai_secretary_id, db)
+        # if not secretary_info:
+        #     print(f"No secretary found with ID: {ai_secretary_id}")
+        #     return Response("Secretary not found", status=404)
+        
+        # # Log the incoming email in task history
+        # task_id = log_task(secretary_info['user_id'], ai_secretary_id, {
+        #     'type': 'email',
+        #     'from': from_address,
+        #     'to': to_address,
+        #     'subject': subject,
+        #     'body': text_content or html_content,  # Store the body for history
+        #     'message_id': message_id,
+        #     'references': references,
+        #     'received_at': firestore.SERVER_TIMESTAMP,
+        #     'status': 'received'
+        # }, db)
+
+        response_content = f"This is a test response to your email.\n\n"
+        
+        # Send the response email with thread headers
+        send_email_response(
+            to_email=from_address,
+            from_email=to_address,
+            subject=f"Re: {subject}",
+            content=response_content,
+            message_id=message_id,
+            references=references, 
+            domain=SENDING_DOMAIN.value
+        )
+        
+        return Response("Email processed successfully", status=200)
+    
+    except Exception as e:
+        print(f"Error processing email: {str(e)}")
+        return Response(f"Error processing email: {str(e)}", status=500)
+
 
