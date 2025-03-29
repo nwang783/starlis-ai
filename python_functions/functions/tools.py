@@ -181,3 +181,19 @@ def get_events(user_id, start_day, end_day):
     except Exception as e:
         print(f"Error retrieving events: {str(e)}")
         return {"error": f"Failed to retrieve events: {str(e)}"}
+    
+def delete_event(user_id, event_id):
+    """
+    Deletes an event from the user's primary calendar.
+    
+    Parameters:
+      event_id (str): The unique identifier of the event to delete.
+    """
+    try:
+        service = get_calendar_service(user_id)
+        service.events().delete(calendarId='primary', eventId=event_id).execute()
+        print(f"Event {event_id} deleted.")
+        return {"status": "success", "message": f"Event {event_id} deleted successfully"}
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {"error": f"Failed to delete event: {str(e)}"}
