@@ -58,15 +58,36 @@ def create_ai_secretary_email(request: Request) -> Response:
             return Response("Invalid request data", status=400)
         
         user_id = request_data.get('user_id')
-        secretary_name = request_data.get('secretary_name', 'AI Secretary')
-        username = request_data.get('username', 'ai')
+        print(user_id)
         
         if not user_id:
             return Response("Missing user_id", status=400)
         
+        # Check if user exists
         user_ref = db.collection('users').document(user_id)
         if not user_ref.get().exists:
             return Response("User not found", status=404)
+            
+        # Check if the user already has an AI secretary
+        existing_secretary = db.collection('ai_secretaries').where('user_id', '==', user_id).limit(1).get()
+        
+        if len(existing_secretary) > 0:
+            # User already has a secretary, return the existing one
+            print("Found existing secretary")
+            secretary_doc = existing_secretary[0]
+            return Response(
+                json.dumps({
+                    'email': secretary_doc.get('email'),
+                    'secretary_id': secretary_doc.id
+                }),
+                status=200,
+                content_type='application/json'
+            )
+        
+        # Continue with creating a new secretary since none exists
+        secretary_name = request_data.get('secretary_name', 'AI Secretary')
+        username = request_data.get('username', 'ai')
+        
         user_doc = user_ref.get()
         user_full_name = user_doc.get('firstName') + ' ' + user_doc.get('lastName')
         user_email = user_doc.get('email')
