@@ -60,7 +60,10 @@ fastify.register(fastifyCors, {
   credentials: true,
   maxAge: 86400, // 24 hours
   preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  hideOptionsRoute: true,
+  strictPreflight: true
 });
 
 const PORT = process.env.PORT || 8000;
