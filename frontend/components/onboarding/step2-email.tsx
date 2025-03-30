@@ -59,7 +59,7 @@ export function Step1EmailSetup({
         body: JSON.stringify({
           user_id: user.uid, // Use the user ID from authentication
           secretary_name: secretaryName,
-          username: username || user.displayName?.split(' ')[0]?.toLowerCase() || 'ai', // Use first name if available
+          username: username || user.firstName || 'ai', // Use first name if available
           personality: personality,
           custom_instructions: customInstructions,
         }),
