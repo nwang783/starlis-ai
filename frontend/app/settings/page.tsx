@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { AppSidebar } from "../../components/app-sidebar"
@@ -33,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { collection, query, getDocs, doc, setDoc, updateDoc, serverTimestamp, where } from "firebase/firestore"
 
 import { TwoFactorSetup } from "@/components/two-factor-setup"
 import { ExportDataModal } from "@/components/export-data-modal"
@@ -41,7 +41,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { doc, updateDoc, setDoc } from "firebase/firestore"
 
 // Define the type for Google OAuth response
 type GoogleOAuthResponse = {
@@ -956,6 +955,35 @@ export default function SettingsPage() {
 
     setIsLoading(true)
     try {
+      // First, search for the secretary document in ai_secretaries collection
+      const secretariesRef = collection(db, "ai_secretaries")
+      const q = query(secretariesRef, where("user_id", "==", user.uid))
+      const querySnapshot = await getDocs(q)
+      
+      let secretaryDocRef
+      if (querySnapshot.empty) {
+        // If no secretary exists, create a new one
+        secretaryDocRef = doc(collection(db, "ai_secretaries"))
+        await setDoc(secretaryDocRef, {
+          user_id: user.uid,
+          name: assistantName,
+          system_prompt: systemPrompt,
+          temperature: parseFloat(temperature),
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp()
+        })
+      } else {
+        // Update existing secretary
+        secretaryDocRef = querySnapshot.docs[0].ref
+        await updateDoc(secretaryDocRef, {
+          name: assistantName,
+          system_prompt: systemPrompt,
+          temperature: parseFloat(temperature),
+          updated_at: serverTimestamp()
+        })
+      }
+
+      // Also update the user's assistant settings for backward compatibility
       await updateUserData(user.uid, {
         assistant: {
           name: assistantName,

@@ -12,6 +12,24 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Rules for ai_secretaries collection
+    match /ai_secretaries/{secretaryId} {
+      // Allow read if user owns the secretary
+      allow read: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      
+      // Allow create if user is authenticated and sets themselves as owner
+      allow create: if isAuthenticated() 
+        && request.resource.data.user_id == request.auth.uid;
+      
+      // Allow update if user owns the secretary
+      allow update: if isAuthenticated() 
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.user_id == request.auth.uid;
+      
+      // Allow delete if user owns the secretary
+      allow delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+    }
+
     // Rules for users collection
     match /users/{userId} {
       // Allow read if user owns the document
