@@ -32,7 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { collection, query, getDocs, doc, setDoc, updateDoc, serverTimestamp, where } from "firebase/firestore"
+import { collection, query, getDocs, doc, setDoc, updateDoc, serverTimestamp, where, getDoc } from "firebase/firestore"
 
 import { TwoFactorSetup } from "@/components/two-factor-setup"
 import { ExportDataModal } from "@/components/export-data-modal"
@@ -196,105 +196,88 @@ export default function SettingsPage() {
   // Fix the useEffect to properly handle the async function and maintain stable dependencies
   useEffect(() => {
     const fetchUserData = async () => {
-      if (userData) {
-        setFirstName(userData.firstName || "");
-        setLastName(userData.lastName || "");
-        setEmail(userData.email || "");
-        
-        // Get AI secretary email
-        const aiEmail = await getAIEmail();
-        setStarlisEmail(aiEmail);
-        
-        // ...existing code for other data initialization...
-        setSmtpSettings({
-          smtpUsername: userData.smtpUsername || "",
-          smtpPassword: userData.smtpPassword || "",
-          smtpPort: userData.smtpPort || "",
-          smtpServer: userData.smtpServer || "",
-          smtpEncryption: userData.smtpEncryption || "tls",
-        })
-        setIntegrations(
-          userData.integrations || {
-            googleCalendar: false,
-            outlookCalendar: false,
-            appleCalendar: false,
-            gmail: false,
-            discord: false,
-            twitter: false,
-          },
-        )
-        setTwoFactorEnabled(userData.twoFactorEnabled || false)
+      if (!user) return
 
-        // Initialize calendar settings
-        if (userData.calendar) {
-          setDefaultMeetingDuration(userData.calendar.defaultMeetingDuration || "30")
-          setBufferTime(userData.calendar.bufferTime || "15")
-          setWorkingHoursStart(userData.calendar.workingHours?.start || "09:00")
-          setWorkingHoursEnd(userData.calendar.workingHours?.end || "17:00")
-          setWorkingDays(userData.calendar.workingDays || ["monday", "tuesday", "wednesday", "thursday", "friday"])
-          setAutoAcceptMeetings(userData.calendar.autoAcceptMeetings || false)
+      try {
+        // Fetch user data
+        const userDocRef = doc(db, "users", user.uid)
+        const userDoc = await getDoc(userDocRef)
+        const userData = userDoc.data()
+
+        if (userData) {
+          // Initialize general settings
+          setFirstName(userData.firstName || "")
+          setLastName(userData.lastName || "")
+          setPhoneNumber(userData.phoneNumber ? formatPhoneNumber(userData.phoneNumber.replace(/^\+1/, "")) : "")
+
+          // Initialize handling settings
+          if (userData.handling) {
+            setAutoReplyToEmails(userData.handling.autoReplyToEmails || false)
+            setAutoScheduleMeetings(userData.handling.autoScheduleMeetings || false)
+            setAutoSuggestTimes(userData.handling.autoSuggestTimes !== false)
+            setConfirmBeforeSending(userData.handling.confirmBeforeSending !== false)
+            setEmailResponseStyle(userData.handling.emailResponseStyle || "professional")
+            setEmailResponseMode(userData.handling.emailResponseMode || "assistant")
+            setAllowCallForwarding(userData.handling.allowCallForwarding || false)
+            setRequireCallConfirmation(userData.handling.requireCallConfirmation !== false)
+            setStartupPage(userData.handling.startupPage || "dashboard")
+          }
+
+          // Initialize Twilio and ElevenLabs form data
+          setTwilioFormData({
+            twilioSid: userData.voice?.twilioSid || userData.onboarding?.voice?.twilioSid || "",
+            twilioApiKey: userData.voice?.twilioApiKey || userData.onboarding?.voice?.twilioApiKey || "",
+            twilioPhoneNumber: userData.voice?.twilioPhoneNumber || userData.onboarding?.voice?.twilioPhoneNumber || "",
+          })
+
+          setElevenLabsFormData({
+            elevenLabsApiKey: userData.voice?.elevenLabsApiKey || userData.onboarding?.voice?.elevenLabsApiKey || "",
+            elevenLabsAgentId: userData.voice?.elevenLabsAgentId || userData.onboarding?.voice?.elevenLabsAgentId || "",
+          })
+
+          // Check if credentials are complete
+          setTwilioComplete(
+            !!(userData.voice?.twilioSid || userData.onboarding?.voice?.twilioSid) &&
+              !!(userData.voice?.twilioApiKey || userData.onboarding?.voice?.twilioApiKey) &&
+              !!(userData.voice?.twilioPhoneNumber || userData.onboarding?.voice?.twilioPhoneNumber),
+          )
+
+          setElevenLabsComplete(
+            !!(userData.voice?.elevenLabsApiKey || userData.onboarding?.voice?.elevenLabsApiKey) &&
+              !!(userData.voice?.elevenLabsAgentId || userData.onboarding?.voice?.elevenLabsAgentId),
+          )
+
+          // Fetch assistant settings from ai_secretaries collection
+          const secretariesRef = collection(db, "ai_secretaries")
+          const q = query(secretariesRef, where("user_id", "==", user.uid))
+          const querySnapshot = await getDocs(q)
+          
+          if (!querySnapshot.empty) {
+            const secretaryData = querySnapshot.docs[0].data()
+            setAssistantName(secretaryData.name || "Starlis")
+            setCustomInstructions(secretaryData.custom_instructions || "You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.")
+            setPersonality(secretaryData.personality || "helpful and professional")
+            setVoiceEnabled(secretaryData.voice_enabled !== false)
+          } else {
+            // Set default values if no secretary exists
+            setAssistantName("Starlis")
+            setCustomInstructions("You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.")
+            setPersonality("helpful and professional")
+            setVoiceEnabled(true)
+          }
         }
-
-        // Initialize handling settings
-        if (userData.handling) {
-          setAutoReplyToEmails(userData.handling.autoReplyToEmails || false)
-          setAutoScheduleMeetings(userData.handling.autoScheduleMeetings || false)
-          setAutoSuggestTimes(userData.handling.autoSuggestTimes !== false) // default to true
-          setConfirmBeforeSending(userData.handling.confirmBeforeSending !== false) // default to true
-          setEmailResponseStyle(userData.handling.emailResponseStyle || "professional")
-
-          // Initialize new handling settings
-          setEmailResponseMode(userData.handling.emailResponseMode || "assistant")
-          setAllowCallForwarding(userData.handling.allowCallForwarding || false)
-          setRequireCallConfirmation(userData.handling.requireCallConfirmation !== false) // default to true
-          setStartupPage(userData.handling.startupPage || "dashboard") // Default to dashboard
-        }
-
-        // Initialize Twilio form data
-        setTwilioFormData({
-          twilioSid: userData.voice?.twilioSid || userData.onboarding?.voice?.twilioSid || "",
-          twilioApiKey: userData.voice?.twilioApiKey || userData.onboarding?.voice?.twilioApiKey || "",
-          twilioPhoneNumber: userData.voice?.twilioPhoneNumber || userData.onboarding?.voice?.twilioPhoneNumber || "",
+      } catch (error) {
+        console.error("Error fetching user data:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load user data",
+          variant: "destructive",
         })
-
-        // Initialize ElevenLabs form data
-        setElevenLabsFormData({
-          elevenLabsApiKey: userData.voice?.elevenLabsApiKey || userData.onboarding?.voice?.elevenLabsApiKey || "",
-          elevenLabsAgentId: userData.voice?.elevenLabsAgentId || userData.onboarding?.voice?.elevenLabsAgentId || "",
-        })
-
-        // Check if credentials are complete
-        setTwilioComplete(
-          !!(userData.voice?.twilioSid || userData.onboarding?.voice?.twilioSid) &&
-            !!(userData.voice?.twilioApiKey || userData.onboarding?.voice?.twilioApiKey) &&
-            !!(userData.voice?.twilioPhoneNumber || userData.onboarding?.voice?.twilioPhoneNumber),
-        )
-
-        setElevenLabsComplete(
-          !!(userData.voice?.elevenLabsApiKey || userData.onboarding?.voice?.elevenLabsApiKey) &&
-            !!(userData.voice?.elevenLabsAgentId || userData.onboarding?.voice?.elevenLabsAgentId),
-        )
-
-        // Initialize assistant settings from userData
-        setAssistantName(userData.assistant?.name || "Starlis")
-        setCustomInstructions(
-          userData.assistant?.customInstructions ||
-            "You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.",
-        )
-        setPersonality(userData.assistant?.personality || "helpful and professional")
-
-        // Initialize voice settings from userData
-        setVoiceId(userData.assistant?.voice?.id || "default")
-        setVoiceStability(userData.assistant?.voice?.stability || "0.5")
-        setVoiceClarity(userData.assistant?.voice?.clarity || "0.5")
-        setVoiceEnabled(userData.assistant?.voice?.enabled !== false)
-
-        setPhoneNumber(userData.phoneNumber ? formatPhoneNumber(userData.phoneNumber.replace(/^\+1/, "")) : "")
       }
-    };
-    
-    fetchUserData();
-  }, [userData]); // Remove user from dependencies since it's only used inside getAIEmail function
+    }
+
+    fetchUserData()
+  }, [user, toast])
 
   // Add these functions after your state declarations
 
@@ -988,7 +971,7 @@ export default function SettingsPage() {
 
     setIsLoading(true)
     try {
-      // First, search for the secretary document in ai_secretaries collection
+      // Search for the secretary document in ai_secretaries collection
       const secretariesRef = collection(db, "ai_secretaries")
       const q = query(secretariesRef, where("user_id", "==", user.uid))
       const querySnapshot = await getDocs(q)
@@ -1020,15 +1003,6 @@ export default function SettingsPage() {
         })
       }
 
-      // Also update the user's assistant settings for backward compatibility
-      await updateUserData(user.uid, {
-        assistant: {
-          name: assistantName,
-          customInstructions: customInstructions,
-          personality: personality,
-        },
-      })
-
       await refreshUserData()
 
       toast({
@@ -1052,15 +1026,18 @@ export default function SettingsPage() {
 
     setIsLoading(true)
     try {
-      await updateUserData(user.uid, {
-        assistant: {
-          ...userData?.assistant,
-          voice: {
-            ...userData?.assistant?.voice,
-            enabled: voiceEnabled,
-          },
-        },
-      })
+      // Search for the secretary document in ai_secretaries collection
+      const secretariesRef = collection(db, "ai_secretaries")
+      const q = query(secretariesRef, where("user_id", "==", user.uid))
+      const querySnapshot = await getDocs(q)
+      
+      if (!querySnapshot.empty) {
+        const secretaryDocRef = querySnapshot.docs[0].ref
+        await updateDoc(secretaryDocRef, {
+          voice_enabled: voiceEnabled,
+          updated_at: serverTimestamp()
+        })
+      }
 
       await refreshUserData()
 
