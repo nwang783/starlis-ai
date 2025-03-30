@@ -56,6 +56,11 @@ const authenticateRequest = async (request, reply) => {
     
     return;
   } catch (error) {
+    if (error.message === 'Token has already been used') {
+      return reply.code(401).send({ 
+        error: 'Token has already been used. Please generate a new token.' 
+      });
+    }
     return reply.code(401).send({ error: error.message || 'Invalid token' });
   }
 };

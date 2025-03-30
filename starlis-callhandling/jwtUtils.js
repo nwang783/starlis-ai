@@ -13,6 +13,9 @@ if (!JWT_SECRET) {
 
 console.log('JWT_SECRET loaded:', JWT_SECRET ? 'Yes' : 'No');
 
+// In-memory storage for used tokens (in production, use Redis or a database)
+const usedTokens = new Set();
+
 export const generateToken = (source) => {
   if (!JWT_SECRET) {
     throw new Error('JWT_SECRET is not set');
@@ -20,11 +23,12 @@ export const generateToken = (source) => {
 
   return jwt.sign(
     { 
-      source, // 'frontend' or 'backend'
-      timestamp: Date.now()
+      source,
+      timestamp: Date.now(),
+      used: false
     },
     JWT_SECRET,
-    { expiresIn: '1h' }
+    { expiresIn: '5m' } // Short expiration time since it's single-use
   );
 };
 
@@ -34,8 +38,26 @@ export const verifyToken = (token) => {
   }
 
   try {
-    return jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Check if token has been used
+    if (usedTokens.has(token)) {
+      throw new Error('Token has already been used');
+    }
+
+    // Mark token as used
+    usedTokens.add(token);
+
+    // Clean up old tokens (optional)
+    setTimeout(() => {
+      usedTokens.delete(token);
+    }, 5 * 60 * 1000); // Remove after 5 minutes (matching expiration)
+
+    return decoded;
   } catch (error) {
+    if (error.message === 'Token has already been used') {
+      throw error;
+    }
     throw new Error('Invalid token');
   }
 }; 
