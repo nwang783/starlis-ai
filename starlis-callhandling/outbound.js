@@ -31,13 +31,23 @@ fastify.get('/', async (_, reply) => {
 // Helper function to get credentials from Firestore
 async function getUserCredentials(userId) {
   try {
+    console.log('[Firestore] Fetching credentials for user:', userId);
     const userDoc = await firestore.collection('users').doc(userId).get();
     
     if (!userDoc.exists) {
+      console.error('[Firestore] User document not found:', userId);
       throw new Error(`User document not found for user ID: ${userId}`);
     }
 
     const voiceData = userDoc.data().onboarding?.voice || {};
+    console.log('[Firestore] Voice data:', {
+      hasElevenLabsAgentId: !!voiceData.elevenLabsAgentId,
+      hasElevenLabsApiKey: !!voiceData.elevenLabsApiKey,
+      hasTwilioApiKey: !!voiceData.twilioApiKey,
+      hasTwilioPhoneNumber: !!voiceData.twilioPhoneNumber,
+      hasTwilioSid: !!voiceData.twilioSid
+    });
+
     const {
       elevenLabsAgentId,
       elevenLabsApiKey,
@@ -49,9 +59,17 @@ async function getUserCredentials(userId) {
     // Validate all required credentials
     if (!elevenLabsAgentId || !elevenLabsApiKey || 
         !twilioApiKey || !twilioPhoneNumber || !twilioSid) {
+      console.error('[Firestore] Missing credentials:', {
+        elevenLabsAgentId: !!elevenLabsAgentId,
+        elevenLabsApiKey: !!elevenLabsApiKey,
+        twilioApiKey: !!twilioApiKey,
+        twilioPhoneNumber: !!twilioPhoneNumber,
+        twilioSid: !!twilioSid
+      });
       throw new Error('Missing required credentials in Firestore document');
     }
 
+    console.log('[Firestore] Successfully loaded credentials for user:', userId);
     return {
       elevenLabsAgentId,
       elevenLabsApiKey,
@@ -59,7 +77,7 @@ async function getUserCredentials(userId) {
       twilioPhoneNumber
     };
   } catch (error) {
-    console.error('Error fetching user credentials:', error);
+    console.error('[Firestore] Error fetching user credentials:', error);
     throw error;
   }
 }
@@ -223,10 +241,13 @@ fastify.register(async (fastifyInstance) => {
     let elevenLabsWs = null;
     let customParameters = null;
     let userCredentials = null;
+    let isElevenLabsConnected = false;
 
     // Set up ElevenLabs connection
     const setupElevenLabs = async () => {
       try {
+        console.log('[ElevenLabs] Starting setup with parameters:', customParameters);
+        
         // Fetch user credentials from Firestore
         userCredentials = await getUserCredentials(customParameters.user_id);
         
@@ -235,12 +256,13 @@ fastify.register(async (fastifyInstance) => {
           userCredentials.elevenLabsApiKey
         );
 
-        console.log('[ElevenLabs] Signed URL obtained:', signedUrl);
+        console.log('[ElevenLabs] Signed URL obtained');
 
         elevenLabsWs = new WebSocket(signedUrl);
 
         elevenLabsWs.on('open', () => {
           console.log('[ElevenLabs] Connected to Conversational AI');
+          isElevenLabsConnected = true;
 
           // Send initial configuration with prompt and first message
           const initialConfig = {
@@ -260,35 +282,21 @@ fastify.register(async (fastifyInstance) => {
             },
           };
 
-          console.log(
-            '[ElevenLabs] Sending initial config with prompt:',
-            initialConfig.conversation_config_override.agent.prompt.prompt
-          );
-
-          // Send the configuration to ElevenLabs
+          console.log('[ElevenLabs] Sending initial config');
           elevenLabsWs.send(JSON.stringify(initialConfig));
         });
 
         elevenLabsWs.on('message', (data) => {
           try {
             const message = JSON.parse(data);
-            console.log('[ElevenLabs] Raw Received Message:', JSON.stringify(message, null, 2));
+            console.log('[ElevenLabs] Received message type:', message.type);
 
             switch (message.type) {
               case 'conversation_initiation_metadata':
                 console.log('[ElevenLabs] Received initiation metadata');
-                console.log('[ElevenLabs] Initiation Metadata Details:', JSON.stringify(message, null, 2));
                 break;
 
               case 'audio':
-                console.log('[ElevenLabs] Received Audio Message');
-                console.log('[ElevenLabs] Audio Message Details:', {
-                  chunkExists: !!message.audio?.chunk,
-                  base64Exists: !!message.audio_event?.audio_base_64,
-                  chunkLength: message.audio?.chunk?.length,
-                  base64Length: message.audio_event?.audio_base_64?.length
-                });
-
                 if (streamSid) {
                   if (message.audio?.chunk) {
                     console.log('[ElevenLabs] Sending Audio Chunk via Twilio Stream');
@@ -310,52 +318,32 @@ fastify.register(async (fastifyInstance) => {
                       },
                     };
                     ws.send(JSON.stringify(audioData));
-                  } else {
-                    console.log('[ElevenLabs] No audio payload found');
                   }
-                } else {
-                  console.log('[ElevenLabs] Received audio but no StreamSid yet');
                 }
                 break;
 
               case 'interruption':
-                console.log('[ElevenLabs] Received Interruption');
                 if (streamSid) {
-                  ws.send(
-                    JSON.stringify({
-                      event: 'clear',
-                      streamSid,
-                    })
-                  );
+                  ws.send(JSON.stringify({ event: 'clear', streamSid }));
                 }
                 break;
 
               case 'ping':
-                console.log('[ElevenLabs] Received Ping');
                 if (message.ping_event?.event_id) {
-                  elevenLabsWs.send(
-                    JSON.stringify({
-                      type: 'pong',
-                      event_id: message.ping_event.event_id,
-                    })
-                  );
+                  elevenLabsWs.send(JSON.stringify({
+                    type: 'pong',
+                    event_id: message.ping_event.event_id,
+                  }));
                 }
                 break;
 
               case 'agent_response':
-                console.log(
-                  `[ElevenLabs] Agent Response: ${message.agent_response_event?.agent_response}`
-                );
+                console.log(`[ElevenLabs] Agent Response: ${message.agent_response_event?.agent_response}`);
                 break;
 
               case 'user_transcript':
-                console.log(
-                  `[ElevenLabs] User Transcript: ${message.user_transcription_event?.user_transcript}`
-                );
+                console.log(`[ElevenLabs] User Transcript: ${message.user_transcription_event?.user_transcript}`);
                 break;
-
-              default:
-                console.log(`[ElevenLabs] Unhandled message type: ${message.type}`);
             }
           } catch (error) {
             console.error('[ElevenLabs] Error processing message:', error);
@@ -364,13 +352,16 @@ fastify.register(async (fastifyInstance) => {
 
         elevenLabsWs.on('error', (error) => {
           console.error('[ElevenLabs] WebSocket error:', error);
+          isElevenLabsConnected = false;
         });
 
         elevenLabsWs.on('close', () => {
           console.log('[ElevenLabs] Disconnected');
+          isElevenLabsConnected = false;
         });
       } catch (error) {
         console.error('[ElevenLabs] Setup error:', error);
+        isElevenLabsConnected = false;
       }
     };
 
@@ -378,15 +369,13 @@ fastify.register(async (fastifyInstance) => {
     ws.on('message', (message) => {
       try {
         const msg = JSON.parse(message);
-        if (msg.event !== 'media') {
-          console.log(`[Twilio] Received event: ${msg.event}`);
-        }
+        console.log(`[Twilio] Received event: ${msg.event}`);
 
         switch (msg.event) {
           case 'start':
             streamSid = msg.start.streamSid;
             callSid = msg.start.callSid;
-            customParameters = msg.start.customParameters; // Store parameters
+            customParameters = msg.start.customParameters;
             console.log(`[Twilio] Stream started - StreamSid: ${streamSid}, CallSid: ${callSid}`);
             console.log('[Twilio] Start parameters:', customParameters);
             
@@ -398,15 +387,17 @@ fastify.register(async (fastifyInstance) => {
             console.log('[Twilio] Received Media Event');
             console.log('[Twilio] Media Payload Length:', msg.media.payload.length);
             
-            if (elevenLabsWs?.readyState === WebSocket.OPEN) {
+            if (isElevenLabsConnected && elevenLabsWs?.readyState === WebSocket.OPEN) {
               const audioMessage = {
                 user_audio_chunk: Buffer.from(msg.media.payload, 'base64').toString('base64'),
               };
               console.log('[Twilio] Sending Audio to ElevenLabs');
-              console.log('[Twilio] Audio Chunk Length:', audioMessage.user_audio_chunk.length);
               elevenLabsWs.send(JSON.stringify(audioMessage));
             } else {
-              console.log('[Twilio] ElevenLabs WebSocket not open');
+              console.log('[Twilio] ElevenLabs WebSocket not ready. Connection status:', {
+                isElevenLabsConnected,
+                readyState: elevenLabsWs?.readyState
+              });
             }
             break;
 
@@ -416,9 +407,6 @@ fastify.register(async (fastifyInstance) => {
               elevenLabsWs.close();
             }
             break;
-
-          default:
-            console.log(`[Twilio] Unhandled event: ${msg.event}`);
         }
       } catch (error) {
         console.error('[Twilio] Error processing message:', error);
