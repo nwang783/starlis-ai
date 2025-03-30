@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -29,22 +29,35 @@ export function Step1EmailSetup({
   const [email, setEmail] = useState("")
   const [secretaryId, setSecretaryId] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const emailCreationAttempted = useRef(false)
   
-  // Listen for auth state changes
+  // Listen for auth state changes and create email once when ready
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
+      
+      // Only attempt to create email if:
+      // 1. We have a valid user
+      // 2. We haven't attempted creation yet
+      if (currentUser && currentUser.uid && !emailCreationAttempted.current) {
+        emailCreationAttempted.current = true;
+        createEmail(currentUser);
+      } else if (!currentUser && !emailCreationAttempted.current) {
+        emailCreationAttempted.current = true;
+        setError("You must be logged in to create an email address");
+        setIsCreatingEmail(false);
+      }
     });
     
     return () => unsubscribe();
   }, []);
   
-  const createEmail = async () => {
+  const createEmail = async (currentUser = user) => {
     setIsCreatingEmail(true)
     setError(null)
     
     // Check if user is authenticated
-    if (!user || !user.uid) {
+    if (!currentUser || !currentUser.uid) {
       setError("You must be logged in to create an email address");
       setIsCreatingEmail(false);
       return;
@@ -57,9 +70,9 @@ export function Step1EmailSetup({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: user.uid, // Use the user ID from authentication
+          user_id: currentUser.uid, // Use the user ID from authentication
           secretary_name: secretaryName,
-          username: username || user.displayName?.split(' ')[0]?.toLowerCase() || 'ai', // Use first name if available
+          username: username || currentUser.displayName?.split(' ')[0]?.toLowerCase() || 'ai', // Use first name if available
           personality: personality,
           custom_instructions: customInstructions,
         }),
@@ -83,16 +96,6 @@ export function Step1EmailSetup({
     }
   }
   
-  useEffect(() => {
-    // Only create email when user data is available
-    if (user && user.uid) {
-      createEmail();
-    } else if (!user) {
-      setError("You must be logged in to create an email address");
-      setIsCreatingEmail(false);
-    }
-  }, [user]); // Re-run when user auth state changes
-
   const copyToClipboard = () => {
     navigator.clipboard.writeText(email)
     toast({
@@ -108,6 +111,12 @@ export function Step1EmailSetup({
       setIsLoading(false)
       onNext({ email, secretaryId })
     }, 500)
+  }
+
+  // Reset the email creation attempt if retry is needed
+  const handleRetry = () => {
+    emailCreationAttempted.current = false;
+    createEmail();
   }
 
   return (
@@ -148,7 +157,7 @@ export function Step1EmailSetup({
                   <span className="sr-only">Creating email</span>
                 </Button>
               ) : error ? (
-                <Button variant="outline" size="icon" onClick={createEmail}>
+                <Button variant="outline" size="icon" onClick={handleRetry}>
                   <RefreshCw className="h-4 w-4" />
                   <span className="sr-only">Retry</span>
                 </Button>
