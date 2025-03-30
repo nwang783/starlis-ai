@@ -223,8 +223,6 @@ fastify.register(async (fastifyInstance) => {
     let elevenLabsWs = null;
     let customParameters = null;
     let userCredentials = null;
-    let mediaQueue = [];
-    let isElevenLabsConnected = false;
 
     // Set up ElevenLabs connection
     const setupElevenLabs = async () => {
@@ -243,14 +241,6 @@ fastify.register(async (fastifyInstance) => {
 
         elevenLabsWs.on('open', () => {
           console.log('[ElevenLabs] Connected to Conversational AI');
-          isElevenLabsConnected = true;
-
-          // Process any queued media
-          while (mediaQueue.length > 0) {
-            const audioMessage = mediaQueue.shift();
-            console.log('[ElevenLabs] Processing queued audio message');
-            elevenLabsWs.send(JSON.stringify(audioMessage));
-          }
 
           // Send initial configuration with prompt and first message
           const initialConfig = {
@@ -300,33 +290,28 @@ fastify.register(async (fastifyInstance) => {
                 });
 
                 if (streamSid) {
-                  let audioPayload = null;
-                  
                   if (message.audio?.chunk) {
-                    console.log('[ElevenLabs] Using audio chunk');
-                    audioPayload = message.audio.chunk;
-                  } else if (message.audio_event?.audio_base_64) {
-                    console.log('[ElevenLabs] Using audio_base_64');
-                    audioPayload = message.audio_event.audio_base_64;
-                  }
-
-                  if (audioPayload) {
-                    console.log('[ElevenLabs] Sending Audio via Twilio Stream');
-                    console.log('[ElevenLabs] Audio Payload Length:', audioPayload.length);
-                    
+                    console.log('[ElevenLabs] Sending Audio Chunk via Twilio Stream');
                     const audioData = {
                       event: 'media',
                       streamSid,
                       media: {
-                        payload: audioPayload,
-                        track: 'inbound_track'
+                        payload: message.audio.chunk,
                       },
                     };
-                    
                     ws.send(JSON.stringify(audioData));
-                    console.log('[ElevenLabs] Audio sent successfully');
+                  } else if (message.audio_event?.audio_base_64) {
+                    console.log('[ElevenLabs] Sending Base64 Audio via Twilio Stream');
+                    const audioData = {
+                      event: 'media',
+                      streamSid,
+                      media: {
+                        payload: message.audio_event.audio_base_64,
+                      },
+                    };
+                    ws.send(JSON.stringify(audioData));
                   } else {
-                    console.log('[ElevenLabs] No valid audio payload found');
+                    console.log('[ElevenLabs] No audio payload found');
                   }
                 } else {
                   console.log('[ElevenLabs] Received audio but no StreamSid yet');
@@ -379,16 +364,13 @@ fastify.register(async (fastifyInstance) => {
 
         elevenLabsWs.on('error', (error) => {
           console.error('[ElevenLabs] WebSocket error:', error);
-          isElevenLabsConnected = false;
         });
 
         elevenLabsWs.on('close', () => {
           console.log('[ElevenLabs] Disconnected');
-          isElevenLabsConnected = false;
         });
       } catch (error) {
         console.error('[ElevenLabs] Setup error:', error);
-        isElevenLabsConnected = false;
       }
     };
 
@@ -416,17 +398,15 @@ fastify.register(async (fastifyInstance) => {
             console.log('[Twilio] Received Media Event');
             console.log('[Twilio] Media Payload Length:', msg.media.payload.length);
             
-            const audioMessage = {
-              user_audio_chunk: Buffer.from(msg.media.payload, 'base64').toString('base64'),
-            };
-            
-            if (isElevenLabsConnected && elevenLabsWs?.readyState === WebSocket.OPEN) {
+            if (elevenLabsWs?.readyState === WebSocket.OPEN) {
+              const audioMessage = {
+                user_audio_chunk: Buffer.from(msg.media.payload, 'base64').toString('base64'),
+              };
               console.log('[Twilio] Sending Audio to ElevenLabs');
               console.log('[Twilio] Audio Chunk Length:', audioMessage.user_audio_chunk.length);
               elevenLabsWs.send(JSON.stringify(audioMessage));
             } else {
-              console.log('[Twilio] ElevenLabs WebSocket not open, queueing audio message');
-              mediaQueue.push(audioMessage);
+              console.log('[Twilio] ElevenLabs WebSocket not open');
             }
             break;
 
