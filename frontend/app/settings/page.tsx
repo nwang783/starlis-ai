@@ -41,6 +41,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { get } from "http"
 
 // Define the type for Google OAuth response
 type GoogleOAuthResponse = {
@@ -170,6 +171,131 @@ export default function SettingsPage() {
   const [regeneratePassword, setRegeneratePassword] = useState("")
   const [regenerateError, setRegenerateError] = useState<string | null>(null)
 
+  // Fix the getAIEmail function to properly use async/await
+  const getAIEmail = async () => {
+    if (!user) return "";
+    try {
+      const secretariesRef = collection(db, "ai_secretaries");
+      const q = query(secretariesRef, where("user_id", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        console.log("No AI secretary found for user");
+        return "";
+      }
+      
+      // Use the first secretary found (there should generally only be one per user)
+      const secretaryData = querySnapshot.docs[0].data();
+      return secretaryData.email || "";
+    } catch (error) {
+      console.error("Error fetching AI secretary email:", error);
+      return "";
+    }
+  };
+
+  // Fix the useEffect to properly handle the async function and maintain stable dependencies
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (userData) {
+        setFirstName(userData.firstName || "");
+        setLastName(userData.lastName || "");
+        setEmail(userData.email || "");
+        
+        // Get AI secretary email
+        const aiEmail = await getAIEmail();
+        setStarlisEmail(aiEmail);
+        
+        // ...existing code for other data initialization...
+        setSmtpSettings({
+          smtpUsername: userData.smtpUsername || "",
+          smtpPassword: userData.smtpPassword || "",
+          smtpPort: userData.smtpPort || "",
+          smtpServer: userData.smtpServer || "",
+          smtpEncryption: userData.smtpEncryption || "tls",
+        })
+        setIntegrations(
+          userData.integrations || {
+            googleCalendar: false,
+            outlookCalendar: false,
+            appleCalendar: false,
+            gmail: false,
+            discord: false,
+            twitter: false,
+          },
+        )
+        setTwoFactorEnabled(userData.twoFactorEnabled || false)
+
+        // Initialize calendar settings
+        if (userData.calendar) {
+          setDefaultMeetingDuration(userData.calendar.defaultMeetingDuration || "30")
+          setBufferTime(userData.calendar.bufferTime || "15")
+          setWorkingHoursStart(userData.calendar.workingHours?.start || "09:00")
+          setWorkingHoursEnd(userData.calendar.workingHours?.end || "17:00")
+          setWorkingDays(userData.calendar.workingDays || ["monday", "tuesday", "wednesday", "thursday", "friday"])
+          setAutoAcceptMeetings(userData.calendar.autoAcceptMeetings || false)
+        }
+
+        // Initialize handling settings
+        if (userData.handling) {
+          setAutoReplyToEmails(userData.handling.autoReplyToEmails || false)
+          setAutoScheduleMeetings(userData.handling.autoScheduleMeetings || false)
+          setAutoSuggestTimes(userData.handling.autoSuggestTimes !== false) // default to true
+          setConfirmBeforeSending(userData.handling.confirmBeforeSending !== false) // default to true
+          setEmailResponseStyle(userData.handling.emailResponseStyle || "professional")
+
+          // Initialize new handling settings
+          setEmailResponseMode(userData.handling.emailResponseMode || "assistant")
+          setAllowCallForwarding(userData.handling.allowCallForwarding || false)
+          setRequireCallConfirmation(userData.handling.requireCallConfirmation !== false) // default to true
+          setStartupPage(userData.handling.startupPage || "dashboard") // Default to dashboard
+        }
+
+        // Initialize Twilio form data
+        setTwilioFormData({
+          twilioSid: userData.voice?.twilioSid || userData.onboarding?.voice?.twilioSid || "",
+          twilioApiKey: userData.voice?.twilioApiKey || userData.onboarding?.voice?.twilioApiKey || "",
+          twilioPhoneNumber: userData.voice?.twilioPhoneNumber || userData.onboarding?.voice?.twilioPhoneNumber || "",
+        })
+
+        // Initialize ElevenLabs form data
+        setElevenLabsFormData({
+          elevenLabsApiKey: userData.voice?.elevenLabsApiKey || userData.onboarding?.voice?.elevenLabsApiKey || "",
+          elevenLabsAgentId: userData.voice?.elevenLabsAgentId || userData.onboarding?.voice?.elevenLabsAgentId || "",
+        })
+
+        // Check if credentials are complete
+        setTwilioComplete(
+          !!(userData.voice?.twilioSid || userData.onboarding?.voice?.twilioSid) &&
+            !!(userData.voice?.twilioApiKey || userData.onboarding?.voice?.twilioApiKey) &&
+            !!(userData.voice?.twilioPhoneNumber || userData.onboarding?.voice?.twilioPhoneNumber),
+        )
+
+        setElevenLabsComplete(
+          !!(userData.voice?.elevenLabsApiKey || userData.onboarding?.voice?.elevenLabsApiKey) &&
+            !!(userData.voice?.elevenLabsAgentId || userData.onboarding?.voice?.elevenLabsAgentId),
+        )
+
+        // Initialize assistant settings from userData
+        setAssistantName(userData.assistant?.name || "Starlis")
+        setCustomInstructions(
+          userData.assistant?.customInstructions ||
+            "You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.",
+        )
+        setPersonality(userData.assistant?.personality || "helpful and professional")
+
+        // Initialize voice settings from userData
+        setVoiceId(userData.assistant?.voice?.id || "default")
+        setVoiceStability(userData.assistant?.voice?.stability || "0.5")
+        setVoiceClarity(userData.assistant?.voice?.clarity || "0.5")
+        setVoiceEnabled(userData.assistant?.voice?.enabled !== false)
+
+        setPhoneNumber(userData.phoneNumber ? formatPhoneNumber(userData.phoneNumber.replace(/^\+1/, "")) : "")
+      }
+    };
+    
+    fetchUserData();
+  }, [userData]); // Remove user from dependencies since it's only used inside getAIEmail function
+
   // Add these functions after your state declarations
 
   // Function to initiate Google OAuth
@@ -289,99 +415,6 @@ export default function SettingsPage() {
   };
 
   // Initialize form data from userData
-  useEffect(() => {
-    if (userData) {
-      setFirstName(userData.firstName || "")
-      setLastName(userData.lastName || "")
-      setEmail(userData.email || "")
-      setStarlisEmail(userData.starlisForwardingEmail || "")
-      setSmtpSettings({
-        smtpUsername: userData.smtpUsername || "",
-        smtpPassword: userData.smtpPassword || "",
-        smtpPort: userData.smtpPort || "",
-        smtpServer: userData.smtpServer || "",
-        smtpEncryption: userData.smtpEncryption || "tls",
-      })
-      setIntegrations(
-        userData.integrations || {
-          googleCalendar: false,
-          outlookCalendar: false,
-          appleCalendar: false,
-          gmail: false,
-          discord: false,
-          twitter: false,
-        },
-      )
-      setTwoFactorEnabled(userData.twoFactorEnabled || false)
-
-      // Initialize calendar settings
-      if (userData.calendar) {
-        setDefaultMeetingDuration(userData.calendar.defaultMeetingDuration || "30")
-        setBufferTime(userData.calendar.bufferTime || "15")
-        setWorkingHoursStart(userData.calendar.workingHours?.start || "09:00")
-        setWorkingHoursEnd(userData.calendar.workingHours?.end || "17:00")
-        setWorkingDays(userData.calendar.workingDays || ["monday", "tuesday", "wednesday", "thursday", "friday"])
-        setAutoAcceptMeetings(userData.calendar.autoAcceptMeetings || false)
-      }
-
-      // Initialize handling settings
-      if (userData.handling) {
-        setAutoReplyToEmails(userData.handling.autoReplyToEmails || false)
-        setAutoScheduleMeetings(userData.handling.autoScheduleMeetings || false)
-        setAutoSuggestTimes(userData.handling.autoSuggestTimes !== false) // default to true
-        setConfirmBeforeSending(userData.handling.confirmBeforeSending !== false) // default to true
-        setEmailResponseStyle(userData.handling.emailResponseStyle || "professional")
-
-        // Initialize new handling settings
-        setEmailResponseMode(userData.handling.emailResponseMode || "assistant")
-        setAllowCallForwarding(userData.handling.allowCallForwarding || false)
-        setRequireCallConfirmation(userData.handling.requireCallConfirmation !== false) // default to true
-        setStartupPage(userData.handling.startupPage || "dashboard") // Default to dashboard
-      }
-
-      // Initialize Twilio form data
-      setTwilioFormData({
-        twilioSid: userData.voice?.twilioSid || userData.onboarding?.voice?.twilioSid || "",
-        twilioApiKey: userData.voice?.twilioApiKey || userData.onboarding?.voice?.twilioApiKey || "",
-        twilioPhoneNumber: userData.voice?.twilioPhoneNumber || userData.onboarding?.voice?.twilioPhoneNumber || "",
-      })
-
-      // Initialize ElevenLabs form data
-      setElevenLabsFormData({
-        elevenLabsApiKey: userData.voice?.elevenLabsApiKey || userData.onboarding?.voice?.elevenLabsApiKey || "",
-        elevenLabsAgentId: userData.voice?.elevenLabsAgentId || userData.onboarding?.voice?.elevenLabsAgentId || "",
-      })
-
-      // Check if credentials are complete
-      setTwilioComplete(
-        !!(userData.voice?.twilioSid || userData.onboarding?.voice?.twilioSid) &&
-          !!(userData.voice?.twilioApiKey || userData.onboarding?.voice?.twilioApiKey) &&
-          !!(userData.voice?.twilioPhoneNumber || userData.onboarding?.voice?.twilioPhoneNumber),
-      )
-
-      setElevenLabsComplete(
-        !!(userData.voice?.elevenLabsApiKey || userData.onboarding?.voice?.elevenLabsApiKey) &&
-          !!(userData.voice?.elevenLabsAgentId || userData.onboarding?.voice?.elevenLabsAgentId),
-      )
-
-      // Initialize assistant settings from userData
-      setAssistantName(userData.assistant?.name || "Starlis")
-      setCustomInstructions(
-        userData.assistant?.customInstructions ||
-          "You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.",
-      )
-      setPersonality(userData.assistant?.personality || "helpful and professional")
-
-      // Initialize voice settings from userData
-      setVoiceId(userData.assistant?.voice?.id || "default")
-      setVoiceStability(userData.assistant?.voice?.stability || "0.5")
-      setVoiceClarity(userData.assistant?.voice?.clarity || "0.5")
-      setVoiceEnabled(userData.assistant?.voice?.enabled !== false)
-
-      setPhoneNumber(userData.phoneNumber ? formatPhoneNumber(userData.phoneNumber.replace(/^\+1/, "")) : "")
-    }
-  }, [userData])
-
   // Set active tab from URL parameter
   useEffect(() => {
     if (tabParam) {
