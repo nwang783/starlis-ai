@@ -10,6 +10,11 @@ import { verifyToken, generateToken } from './jwtUtils.js';
 // Load environment variables from .env file
 dotenv.config();
 
+// Debug environment variables
+console.log('Environment variables loaded:');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Not set');
+console.log('ALLOWED_ORIGINS:', process.env.ALLOWED_ORIGINS);
+
 // Initialize Firebase Admin SDK
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
