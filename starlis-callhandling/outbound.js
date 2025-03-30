@@ -37,7 +37,7 @@ async function getUserCredentials(userId) {
       throw new Error(`User document not found for user ID: ${userId}`);
     }
 
-    const voiceData = userDoc.data().voice || {};
+    const voiceData = userDoc.data().onboarding?.voice || {};
     const {
       elevenLabsAgentId,
       elevenLabsApiKey,
