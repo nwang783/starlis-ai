@@ -16,7 +16,7 @@ export function TeamSwitcher() {
               alt="Starlis Logo"
               className="h-8 w-8 text-primary flex-shrink-0 dark:brightness-0 dark:invert"
             />
-            {!isCollapsed && <span className="text-2xl font-semibold flex items-center h-8">starlis.ai</span>}
+            {!isCollapsed && <span className="text-2xl font-semibold flex items-center h-8">starlis</span>}
           </div>
         </Link>
       </SidebarMenuItem>
