@@ -11,7 +11,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Starlis - Your Intelligent Assistant",
   description: "Starlis helps you manage emails, schedule meetings, and boost productivity",
-  generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: '/starlis.png',
+    shortcut: '/starlis.png',
+    apple: '/starlis.png',
+  }
 }
 
 export default function RootLayout({
