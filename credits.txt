@@ -1,0 +1,9 @@
+- [Next.js](https://nextjs.org/) for the amazing React framework
+- [Firebase](https://firebase.google.com/) for backend services
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+- [shadcn](https://ui.shadcn.com/) for accessible components 
+- [Anthropic](https://www.anthropic.com/) for Claude AI
+- [Twilio](https://www.twilio.com/) for voice capabilities
+- [ElevenLabs](https://elevenlabs.io/) for human-like voice synthesis
+- [v0](https://v0.dev/) for lots of web development work
+- [Cursor](https://www.cursor.com/) for lots of web development work

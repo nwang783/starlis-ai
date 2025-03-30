@@ -37,13 +37,4 @@ Starlis is a powerful AI assistant that helps you manage emails, schedule meetin
 - Firebase account and project
 - Google Cloud account (for Firebase)
 
-## Acknowledgments
-
-- [Next.js](https://nextjs.org/) for the amazing React framework
-- [Firebase](https://firebase.google.com/) for backend services
-- [Tailwind CSS](https://tailwindcss.com/) for styling
-- [Radix UI](https://www.radix-ui.com/) for accessible components
-- [Anthropic](https://www.anthropic.com/) for Claude AI
-- [Twilio](https://www.twilio.com/) for voice capabilities
-- [ElevenLabs](https://elevenlabs.io/) for voice synthesis
-- [v0](https://v0.dev/) for some web development work
+## Acknowledgments: see credits.txt
