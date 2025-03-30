@@ -148,6 +148,36 @@ fastify.all('/outbound-call-twiml', async (request, reply) => {
   reply.type('text/xml').send(twimlResponse);
 });
 
+// Route to end an ongoing call
+fastify.post('/end-call', async (request, reply) => {
+  const { callSid, user_id } = request.body;
+
+  if (!callSid || !user_id) {
+    return reply.code(400).send({ 
+      error: 'Call SID and User ID are required' 
+    });
+  }
+
+  try {
+    // Fetch user credentials from Firestore
+    const { twilioClient } = await getUserCredentials(user_id);
+
+    // Update the call status to 'completed' to end the call
+    await twilioClient.calls(callSid).update({ status: 'completed' });
+
+    reply.send({
+      success: true,
+      message: 'Call ended successfully',
+    });
+  } catch (error) {
+    console.error('Error ending call:', error);
+    reply.code(500).send({
+      success: false,
+      error: error.message || 'Failed to end call',
+    });
+  }
+});
+
 // WebSocket route for handling media streams
 fastify.register(async (fastifyInstance) => {
   fastifyInstance.get('/outbound-media-stream', { websocket: true }, (ws, req) => {
