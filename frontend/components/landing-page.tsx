@@ -45,7 +45,7 @@ export function LandingPageContent() {
             <div className="flex h-20 items-center justify-between rounded-full border border-border/40 bg-zinc-900/60 backdrop-blur-lg relative px-4 text-white">
               <Link href="/" className="flex items-center">
                 <img
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/circle-with-irregular-shape-inside-svgrepo-com-krMECzHbCO4kkkJCa2jNlslczUaIzc.svg"
+                  src="/starlis_cutout.svg"
                   alt="Starlis Logo"
                   className="h-10 brightness-0 invert"
                 />
@@ -1022,7 +1022,7 @@ export function LandingPageContent() {
               <div className="col-span-2">
                 <div className="flex items-center mb-4">
                   <img
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/circle-with-irregular-shape-inside-svgrepo-com-krMECzHbCO4kkkJCa2jNlslczUaIzc.svg"
+                    src="/starlis_cutout.svg"
                     alt="Starlis Logo"
                     className="h-8 mr-2 dark:brightness-0 dark:invert"
                   />
