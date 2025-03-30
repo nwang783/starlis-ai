@@ -51,22 +51,88 @@ npm start
 
 The API supports Cross-Origin Resource Sharing (CORS) with the following configuration:
 
-- **Allowed Origins**: Configured through `ALLOWED_ORIGINS` environment variable
+- **Allowed Origins**: 
+  - Development: `http://localhost:3000` (automatically allowed)
+  - Production: Configured through `ALLOWED_ORIGINS` environment variable
+  - Requests with no origin (like mobile apps or curl requests) are allowed
 - **Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS
-- **Allowed Headers**: Content-Type, Authorization, Origin
+- **Allowed Headers**: Content-Type, Authorization, Origin, Accept
 - **Credentials**: Supported
 - **Max Age**: 24 hours
+- **Preflight Requests**: Properly handled with 204 status code
 
 Example CORS configuration:
 ```javascript
 {
-  origin: ['https://your-frontend-domain.com', 'https://your-backend-domain.com'],
+  origin: (origin, cb) => {
+    // Allow requests with no origin
+    if (!origin) return cb(null, true);
+    
+    // Allow localhost during development
+    if (origin === 'http://localhost:3000') return cb(null, true);
+    
+    // Check if the origin is in the allowed list
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+    if (allowedOrigins.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Not allowed by CORS'), false);
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
   credentials: true,
-  maxAge: 86400 // 24 hours
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }
 ```
+
+### Development Setup
+
+For local development, you can make requests from `http://localhost:3000` without any additional configuration. The server automatically allows this origin.
+
+### Production Setup
+
+In production, configure the `ALLOWED_ORIGINS` environment variable with your production domains:
+
+```env
+ALLOWED_ORIGINS=https://your-frontend-domain.com,https://your-backend-domain.com
+```
+
+### Making CORS Requests
+
+When making requests from your frontend application:
+
+```javascript
+// Example fetch request
+const response = await fetch('https://voip.starlis.tech/generate-token', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    'Origin': 'http://localhost:3000' // Your frontend origin
+  },
+  credentials: 'include', // Include credentials if needed
+  body: JSON.stringify({ source: 'frontend' })
+});
+```
+
+### Common CORS Issues
+
+1. **Preflight Requests**: The server properly handles OPTIONS requests with a 204 status code
+2. **Credentials**: Include `credentials: 'include'` in fetch requests when using authenticated requests
+3. **Headers**: Make sure to include all required headers in your requests
+4. **Origin**: The Origin header must match one of the allowed origins
+
+### Error Handling
+
+If you encounter CORS errors:
+
+1. Check that your frontend origin is allowed
+2. Verify that all required headers are included
+3. Ensure credentials are properly configured
+4. Check the server logs for detailed error messages
 
 ## API Documentation
 
