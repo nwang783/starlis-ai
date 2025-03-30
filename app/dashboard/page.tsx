@@ -3,12 +3,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AppSidebar } from "../../components/app-sidebar"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Mail, MessageSquare, Phone, PhoneCall, PhoneIncoming, PhoneOutgoing, User } from "lucide-react"
+import { Calendar, Mail, MessageSquare, Phone, PhoneCall, PhoneIncoming, PhoneOutgoing, User, Bell } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -45,6 +43,41 @@ const callHistory = [
     type: "incoming",
     duration: "3:12",
     timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+  },
+]
+
+// Sample unread messages data
+const unreadMessages = [
+  {
+    id: "1",
+    sender: "Alex Thompson",
+    subject: "Project Update",
+    preview: "I've completed the initial design for the new dashboard...",
+    timestamp: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
+    isImportant: true,
+  },
+  {
+    id: "2",
+    sender: "Jamie Rodriguez",
+    subject: "Meeting Rescheduled",
+    preview: "Our team meeting has been moved to Thursday at 2pm...",
+    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+    isImportant: false,
+  },
+  {
+    id: "3",
+    sender: "Taylor Kim",
+    subject: "New Feature Request",
+    preview: "The client is asking if we can add voice recognition to...",
+    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+    isImportant: true,
+  },
+  {
+    id: "4",
+    sender: "Morgan Lee",
+    subject: "Feedback on Presentation",
+    preview: "Great job on yesterday's presentation! I have a few suggestions...",
+    timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
   },
 ]
 
@@ -155,6 +188,21 @@ export default function DashboardPage() {
     }
   }
 
+  // Format message time
+  const formatMessageTime = (timestamp: Date) => {
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    if (timestamp.toDateString() === today.toDateString()) {
+      return timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    } else if (timestamp.toDateString() === yesterday.toDateString()) {
+      return "Yesterday"
+    } else {
+      return timestamp.toLocaleDateString([], { month: "short", day: "numeric" })
+    }
+  }
+
   // Handle call back
   const handleCallBack = async (name: string, option: string) => {
     if (option === "assistant") {
@@ -175,26 +223,6 @@ export default function DashboardPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => router.push("/assistant")}>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">New Chat</span>
-            </Button>
-          </div>
-        </header>
-
         <div className="flex flex-1 flex-col gap-6 p-6">
           {/* Greeting Header */}
           <div className="flex items-center justify-between">
@@ -210,16 +238,16 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Upcoming Events Section - Moved to top */}
+          {/* Unread Messages Section */}
           <Card className="col-span-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Upcoming Events</CardTitle>
-                <CardDescription>Your schedule for the next few days</CardDescription>
+                <CardTitle>Unread Messages</CardTitle>
+                <CardDescription>Your latest unread emails and messages</CardDescription>
               </div>
               <Button variant="outline" size="sm">
-                <Calendar className="mr-2 h-4 w-4" />
-                View Calendar
+                <Mail className="mr-2 h-4 w-4" />
+                View All Messages
               </Button>
             </CardHeader>
             <CardContent>
@@ -235,37 +263,41 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              ) : upcomingMeetings.length > 0 ? (
-                <ScrollArea className="h-[280px] pr-4">
+              ) : unreadMessages.length > 0 ? (
+                <ScrollArea className="h-[220px] pr-4">
                   <div className="space-y-3">
-                    {upcomingMeetings.map((meeting, index) => (
+                    {unreadMessages.map((message) => (
                       <a
-                        key={meeting.id}
-                        href="#" // In a real app, this would be the calendar link
+                        key={message.id}
+                        href="#" // In a real app, this would link to the message
                         className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors group cursor-pointer block"
                         onClick={(e) => {
                           e.preventDefault()
-                          // In a real app, this would open the calendar event
+                          // In a real app, this would open the message
                           window.open("#", "_blank")
                         }}
                       >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
                             <AvatarFallback className="bg-primary/10 text-primary">
-                              {getInitials(meeting.attendees[0].split("@")[0])}
+                              {getInitials(message.sender)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <h4 className="font-medium">{meeting.title}</h4>
-                            <div className="flex items-center text-sm text-muted-foreground">
-                              <User className="h-3 w-3 mr-1" />
-                              <span>{meeting.attendees[0].split("@")[0].replace(".", " ")}</span>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium">{message.sender}</h4>
+                              {message.isImportant && (
+                                <span className="rounded-full bg-red-500 p-1">
+                                  <Bell className="h-3 w-3 text-white" />
+                                </span>
+                              )}
                             </div>
+                            <div className="font-medium text-sm">{message.subject}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1">{message.preview}</div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium">{formatMeetingDate(meeting.startTime)}</div>
-                          <div className="text-sm text-muted-foreground">{formatMeetingTime(meeting.startTime)}</div>
+                          <div className="text-sm text-muted-foreground">{formatMessageTime(message.timestamp)}</div>
                         </div>
                       </a>
                     ))}
@@ -273,8 +305,8 @@ export default function DashboardPage() {
                 </ScrollArea>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                  <p>No upcoming events scheduled</p>
+                  <Mail className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                  <p>No unread messages</p>
                 </div>
               )}
             </CardContent>
@@ -282,6 +314,76 @@ export default function DashboardPage() {
 
           {/* Main Content Grid */}
           <div className="grid gap-6 md:grid-cols-2">
+            {/* Upcoming Events Section */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Upcoming Events</CardTitle>
+                  <CardDescription>Your schedule for the next few days</CardDescription>
+                </div>
+                <Button variant="outline" size="sm">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  View Calendar
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center justify-between gap-4 p-3 rounded-lg border">
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-3/4 animate-pulse rounded-md bg-muted"></div>
+                          <div className="h-3 w-1/2 animate-pulse rounded-md bg-muted"></div>
+                        </div>
+                        <div className="h-10 w-24 animate-pulse rounded-md bg-muted"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : upcomingMeetings.length > 0 ? (
+                  <ScrollArea className="h-[280px] pr-4">
+                    <div className="space-y-3">
+                      {upcomingMeetings.map((meeting, index) => (
+                        <a
+                          key={meeting.id}
+                          href="#" // In a real app, this would be the calendar link
+                          className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors group cursor-pointer block"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            // In a real app, this would open the calendar event
+                            window.open("#", "_blank")
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-primary/10 text-primary">
+                                {getInitials(meeting.attendees[0].split("@")[0])}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h4 className="font-medium">{meeting.title}</h4>
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <User className="h-3 w-3 mr-1" />
+                                <span>{meeting.attendees[0].split("@")[0].replace(".", " ")}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{formatMeetingDate(meeting.startTime)}</div>
+                            <div className="text-sm text-muted-foreground">{formatMeetingTime(meeting.startTime)}</div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p>No upcoming events scheduled</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Quick Actions */}
             <Card>
               <CardHeader>
@@ -318,8 +420,8 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Call History Section */}
-            <Card>
+            {/* Call History Section - Full Width */}
+            <Card className="md:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Recent Calls</CardTitle>

@@ -1,6 +1,6 @@
 "use client"
 
-import { User, ChevronsUpDown, LogOut, Moon, Sun } from "lucide-react"
+import { User, ChevronDown, LogOut, Moon, Sun } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/auth-context"
-import { signOutUser } from "@/lib/firebase"
+import { signOutUser, updateUserData } from "@/lib/firebase"
 import { getGravatarUrl } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 import { useEffect, useState } from "react"
@@ -25,21 +25,47 @@ export function NavUser() {
   const { userData } = useAuth()
   const router = useRouter()
   const { setTheme, theme, resolvedTheme } = useTheme()
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
 
   // Update the switch state when the theme changes
   useEffect(() => {
-    // Check if we're on the client side before accessing window
+    // Set dark mode as default
     if (typeof window !== "undefined") {
-      setIsDarkMode(resolvedTheme === "dark")
+      // First check if we have a user preference in Firestore
+      if (userData && userData.themePreference !== undefined) {
+        const isDark = userData.themePreference === "dark"
+        setIsDarkMode(isDark)
+        setTheme(isDark ? "dark" : "light")
+
+        // Update the HTML class
+        const html = document.documentElement
+        if (isDark) {
+          html.classList.add("dark")
+        } else {
+          html.classList.remove("dark")
+        }
+      } else {
+        // Default to dark mode if no preference is saved
+        setIsDarkMode(true)
+        setTheme("dark")
+        document.documentElement.classList.add("dark")
+
+        // Save the default preference to Firestore if we have a user
+        if (userData && userData.userId) {
+          updateUserData(userData.userId, { themePreference: "dark" }).catch((error) =>
+            console.error("Error saving theme preference:", error),
+          )
+        }
+      }
     }
-  }, [resolvedTheme])
+  }, [userData, setTheme])
 
   const toggleDarkMode = (checked: boolean) => {
     setIsDarkMode(checked)
     setTheme(checked ? "dark" : "light")
 
-    // Optionally, you can also manually toggle the class on the document element
+    // Update the HTML class
     if (typeof window !== "undefined") {
       const html = document.documentElement
       if (checked) {
@@ -47,6 +73,13 @@ export function NavUser() {
       } else {
         html.classList.remove("dark")
       }
+    }
+
+    // Save the preference to Firestore
+    if (userData && userData.userId) {
+      updateUserData(userData.userId, { themePreference: checked ? "dark" : "light" }).catch((error) =>
+        console.error("Error saving theme preference:", error),
+      )
     }
   }
 
@@ -72,15 +105,15 @@ export function NavUser() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
+              <Avatar className="h-8 w-8">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">
+                <AvatarFallback>
                   {userData.firstName[0]}
                   {userData.lastName[0]}
                 </AvatarFallback>
@@ -89,7 +122,9 @@ export function NavUser() {
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate text-xs">{user.email}</span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <ChevronDown
+                className={`ml-auto size-4 transition-transform duration-200 ${isOpen ? "-rotate-90" : ""}`}
+              />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -100,9 +135,9 @@ export function NavUser() {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
+                <Avatar className="h-8 w-8">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">
+                  <AvatarFallback>
                     {userData.firstName[0]}
                     {userData.lastName[0]}
                   </AvatarFallback>

@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label"
 import { GoogleLoginButton } from "@/components/google-login-button"
 import { signInWithEmail, getUserData } from "@/lib/firebase"
 import { TwoFactorAuthModal } from "@/components/two-factor-auth-modal"
+import { ForgotPasswordModal } from "@/components/forgot-password-modal"
+import Image from "next/image"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -21,8 +23,36 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showTwoFactorAuth, setShowTwoFactorAuth] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [currentUserId, setCurrentUserId] = useState("")
   const router = useRouter()
+
+  // Add animation styles for the blob
+  const animationStyles = `
+    @keyframes blob {
+      0% {
+        transform: translate(0px, 0px) scale(1);
+      }
+      33% {
+        transform: translate(30px, -50px) scale(1.1);
+      }
+      66% {
+        transform: translate(-20px, 20px) scale(0.9);
+      }
+      100% {
+        transform: translate(0px, 0px) scale(1);
+      }
+    }
+    .animate-blob {
+      animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+      animation-delay: 2s;
+    }
+    .animation-delay-4000 {
+      animation-delay: 4s;
+    }
+  `
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -82,20 +112,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center">
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+    <div className="flex h-screen w-full flex-col items-center justify-center relative overflow-hidden">
+      <style jsx global>
+        {animationStyles}
+      </style>
+
+      {/* Gradient Background */}
+      <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-pink-500/20 via-red-500/10 to-purple-600/20 opacity-50 -z-10">
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-red-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-pink-600 to-red-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] z-10">
         <div className="flex flex-col space-y-2 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="size-12 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">STAR</span>
-            </div>
+          <div className="flex items-center justify-center mb-4 gap-2">
+            <Image
+              src="/logo.png"
+              alt="Starlis Logo"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
+            <span className="text-xl font-bold">starlis.ai</span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome to Starlis</h1>
-          <p className="text-sm text-muted-foreground">Enter your email to sign in to your account</p>
         </div>
         <Card className="rounded-xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">Sign in</CardTitle>
+            <CardTitle className="text-xl">Sign In</CardTitle>
             <CardDescription>Choose your preferred sign in method</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -152,14 +196,14 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col">
             <div className="mt-2 text-center text-sm text-muted-foreground">
-              <Link href="/forgot-password" className="underline underline-offset-4 hover:text-primary">
-                Forgot password?
-              </Link>
+              <button onClick={() => setShowForgotPassword(true)} className="text-primary">
+                Forgot Password?
+              </button>
             </div>
             <div className="mt-4 text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
-                Sign up
+              <Link href="/signup" className="no-underline hover:text-primary">
+                Sign Up
               </Link>
             </div>
           </CardFooter>
@@ -173,6 +217,7 @@ export default function LoginPage() {
           onSuccess={handleTwoFactorSuccess}
         />
       )}
+      <ForgotPasswordModal isOpen={showForgotPassword} onClose={() => setShowForgotPassword(false)} />
     </div>
   )
 }

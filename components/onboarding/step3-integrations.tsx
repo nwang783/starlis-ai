@@ -75,7 +75,7 @@ export function Step2Integrations({
     <>
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-2xl">Step 2: Connect Calendar Integrations</CardTitle>
+          <CardTitle className="text-2xl">Step 3: Connect Calendar Integrations</CardTitle>
           <CardDescription>Connect your calendar accounts to enable Starlis to manage your schedule</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -95,40 +95,14 @@ export function Step2Integrations({
               <div className="flex flex-col space-y-4">
                 <div className="flex items-center space-x-2">
                   <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M6 8V5C6 3.34315 7.34315 2 9 2H15C16.6569 2 18 3.34315 18 5V8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <rect
-                      x="4"
-                      y="8"
-                      width="16"
-                      height="14"
-                      rx="2"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M8 13H16"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M8 17H13"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    <path d="M6 16.5H18" stroke="#34A853" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M6 12.5H18" stroke="#4285F4" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M11 8.5H18" stroke="#EA4335" strokeWidth="1.5" strokeLinecap="round" />
+                    <rect x="3" y="4.5" width="18" height="16" rx="2" stroke="#FBBC05" strokeWidth="1.5" />
+                    <path d="M8 2.5V6.5" stroke="#4285F4" strokeWidth="1.5" strokeLinecap="round" />
+                    <path d="M16 2.5V6.5" stroke="#EA4335" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  <h3 className="font-medium">Google Calendar</h3>
+                  <h3 className="font-medium text-sm">Google Calendar</h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Connect your Google Calendar to manage events and meetings.
@@ -143,54 +117,50 @@ export function Step2Integrations({
               </div>
             </div>
 
-            <div className="rounded-lg border p-4">
-              <div className="flex flex-col space-y-4">
+            <div className="rounded-lg border p-4 relative group">
+              <div
+                className="absolute inset-0 bg-black/5 rounded-lg flex items-center justify-center z-10"
+                aria-hidden="true"
+              >
+                <span className="bg-black/75 text-white text-xs px-2 py-1 rounded">Coming Soon</span>
+              </div>
+              <div className="flex flex-col space-y-4 opacity-70">
                 <div className="flex items-center space-x-2">
                   <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 5L14 10L7 5H21Z" fill="#0078D4" />
                     <path
-                      d="M6 8V5C6 3.34315 7.34315 2 9 2H15C16.6569 2 18 3.34315 18 5V8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                      d="M3 5.5V18.5C3 19.0523 3.44772 19.5 4 19.5H20C20.5523 19.5 21 19.0523 21 18.5V5.5L12 12.5L3 5.5Z"
+                      fill="#0078D4"
                     />
-                    <rect
-                      x="4"
-                      y="8"
-                      width="16"
-                      height="14"
-                      rx="2"
-                      stroke="currentColor"
-                      strokeWidth="2"
+                    <path
+                      d="M3 5.5L12 12.5L21 5.5"
+                      stroke="#0078D4"
+                      strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <path
-                      d="M8 13H16"
-                      stroke="currentColor"
-                      strokeWidth="2"
+                      d="M3 18.5L9 12.5"
+                      stroke="#0078D4"
+                      strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <path
-                      d="M8 17H13"
-                      stroke="currentColor"
-                      strokeWidth="2"
+                      d="M21 18.5L15 12.5"
+                      stroke="#0078D4"
+                      strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <h3 className="font-medium">Outlook Calendar</h3>
+                  <h3 className="font-medium text-sm">Outlook Calendar</h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Connect your Outlook Calendar to manage events and meetings.
                 </p>
-                <Button
-                  variant={localIntegrations.outlookCalendar ? "default" : "outline"}
-                  onClick={handleConnectOutlook}
-                  disabled={isLoading || localIntegrations.outlookCalendar}
-                >
-                  {localIntegrations.outlookCalendar ? "Connected" : "Connect Outlook Calendar"}
+                <Button variant="outline" disabled={true} className="cursor-not-allowed">
+                  Connect Outlook Calendar
                 </Button>
               </div>
             </div>

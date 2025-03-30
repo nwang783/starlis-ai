@@ -6,6 +6,12 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  verifyPasswordResetCode as firebaseVerifyPasswordResetCode,
+  confirmPasswordReset as firebaseConfirmPasswordReset,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  deleteUser,
 } from "firebase/auth"
 import {
   getFirestore,
@@ -29,6 +35,7 @@ import {
   clear2FAVerificationStatus,
 } from "./2fa"
 
+// Replace the existing firebaseConfig object with the one provided
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -36,21 +43,40 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const db = getFirestore(app)
 
+// Password reset functions
+export const sendPasswordResetEmail = async (email: string) => {
+  return firebaseSendPasswordResetEmail(auth, email)
+}
+
+export const verifyPasswordResetCode = async (code: string) => {
+  return firebaseVerifyPasswordResetCode(auth, code)
+}
+
+export const confirmPasswordReset = async (code: string, newPassword: string) => {
+  return firebaseConfirmPasswordReset(auth, code, newPassword)
+}
+
 // Authentication functions
-export const signUpWithEmail = async (email: string, password: string, firstName: string, lastName: string) => {
+// Update the signUpWithEmail function to include verification fields
+export const signUpWithEmail = async (
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  phoneNumber?: string,
+) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     const user = userCredential.user
 
     // Generate a Starlis forwarding email
-    const starlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.starlis.${generateRandomString(5)}@mail.starlis.com`
+    const starlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${process.env.NEXT_PUBLIC_EMAIL_PREFIX || 'starlis'}.${generateRandomString(5)}@${process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'mail.starlis.com'}`
 
     // Create user profile in Firestore
     await setDoc(doc(db, "users", user.uid), {
@@ -58,7 +84,10 @@ export const signUpWithEmail = async (email: string, password: string, firstName
       firstName,
       lastName,
       email,
+      phoneNumber: phoneNumber || "", // Store the phone number with country code
       starlisForwardingEmail: starlisEmail,
+      emailVerified: false, // Add verification status
+      phoneVerified: false, // Add verification status
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       // Default SMTP settings (empty)
@@ -238,7 +267,7 @@ export const updateIntegrationSettings = async (userId: string, integrations: an
 
 export const regenerateStarlisEmail = async (userId: string, firstName: string, lastName: string) => {
   try {
-    const newStarlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.starlis.${generateRandomString(5)}@mail.starlis.com`
+    const newStarlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${process.env.NEXT_PUBLIC_EMAIL_PREFIX || 'starlis'}.${generateRandomString(5)}@${process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'mail.starlis.com'}`
     const docRef = doc(db, "users", userId)
     await updateDoc(docRef, {
       starlisForwardingEmail: newStarlisEmail,
@@ -317,6 +346,115 @@ export const getChatHistory = async (userId: string) => {
     throw error
   }
 }
+
+// Add a function to update voice settings in both locations
+export const updateVoiceSettings = async (userId: string, voiceSettings: any) => {
+  try {
+    const docRef = doc(db, "users", userId)
+
+    // Get current user data to preserve other fields
+    const userDoc = await getDoc(docRef)
+    const userData = userDoc.data() || {}
+
+    await updateDoc(docRef, {
+      // Update in the voice object
+      voice: {
+        ...userData.voice,
+        ...voiceSettings,
+      },
+      // Also update in the onboarding.voice object
+      onboarding: {
+        ...userData.onboarding,
+        voice: {
+          ...userData.onboarding?.voice,
+          ...voiceSettings,
+        },
+      },
+      updatedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    throw error
+  }
+}
+
+// Add a function to verify the user's password
+export const verifyPassword = async (password: string) => {
+  try {
+    const user = auth.currentUser
+    if (!user || !user.email) {
+      throw new Error("User not authenticated")
+    }
+
+    const credential = EmailAuthProvider.credential(user.email, password)
+    await reauthenticateWithCredential(user, credential)
+    return true
+  } catch (error) {
+    throw error
+  }
+}
+
+// Modify the deleteUserAccount function to handle Firestore permission errors
+export const deleteUserAccount = async (password?: string) => {
+  try {
+    const user = auth.currentUser
+    if (!user || !user.email) {
+      throw new Error("User not authenticated")
+    }
+
+    const userId = user.uid
+
+    // If password is provided, re-authenticate the user first
+    if (password) {
+      const credential = EmailAuthProvider.credential(user.email, password)
+      await reauthenticateWithCredential(user, credential)
+    }
+
+    // Instead of trying to delete Firestore data directly (which might be restricted by security rules),
+    // mark the account as deleted by updating a field
+    try {
+      await markAccountForDeletion(userId)
+    } catch (firestoreError) {
+      console.error("Error marking account for deletion:", firestoreError)
+      // Continue with account deletion even if Firestore update fails
+    }
+
+    // Delete the user authentication account
+    await deleteUser(user)
+
+    return true
+  } catch (error: any) {
+    console.error("Account deletion error details:", error)
+    if (error.code === "auth/requires-recent-login") {
+      throw new Error("For security reasons, please re-enter your password to delete your account.")
+    }
+    throw error
+  }
+}
+
+// Replace the deleteUserData function with a function to mark the account for deletion
+const markAccountForDeletion = async (userId: string) => {
+  try {
+    const userRef = doc(db, "users", userId)
+
+    // Update the user document to mark it as deleted
+    await updateDoc(userRef, {
+      accountDeleted: true,
+      deletedAt: serverTimestamp(),
+      // Anonymize personal data
+      email: "deleted_user",
+      firstName: "Deleted",
+      lastName: "User",
+      // Keep the userId for reference
+    })
+
+    return true
+  } catch (error) {
+    console.error("Error marking account for deletion:", error)
+    throw error
+  }
+}
+
+// Remove the deleteUserData function since we're not using it anymore
 
 export { auth, db }
 

@@ -6,34 +6,40 @@ import { type User, onAuthStateChanged } from "firebase/auth"
 import { auth, getUserData } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
 
-interface UserData {
+export type UserData = {
+  userId: string
   firstName: string
   lastName: string
   email: string
   starlisForwardingEmail: string
-  smtpUsername?: string
-  smtpPassword?: string
-  smtpPort?: string
-  smtpServer?: string
-  smtpEncryption?: string
-  integrations?: {
-    googleCalendar?: boolean
-    outlookCalendar?: boolean
-    appleCalendar?: boolean
-    gmail?: boolean
-    discord?: boolean
-    twitter?: boolean
+  smtpUsername: string
+  smtpPassword: string
+  smtpPort: string
+  smtpServer: string
+  smtpEncryption: string
+  twoFactorEnabled: boolean
+  phoneNumber?: string
+  integrations: {
+    googleCalendar: boolean
+    outlookCalendar: boolean
+    appleCalendar: boolean
+    gmail: boolean
+    discord: boolean
+    twitter: boolean
   }
-  twoFactorEnabled?: boolean
+  assistant?: {
+    name?: string
+    systemPrompt?: string
+    temperature?: string
+  }
+  voice?: {
+    twilioSid?: string
+    twilioApiKey?: string
+    twilioPhoneNumber?: string
+    elevenLabsApiKey?: string
+    elevenLabsAgentId?: string
+  }
   onboarding?: {
-    emailSetupComplete?: boolean
-    integrationsSetupComplete?: boolean
-    voiceSetupComplete?: boolean
-    onboardingComplete?: boolean
-    integrations?: {
-      googleCalendar?: boolean
-      outlookCalendar?: boolean
-    }
     voice?: {
       twilioSid?: string
       twilioApiKey?: string

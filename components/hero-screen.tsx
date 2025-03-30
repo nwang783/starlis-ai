@@ -16,7 +16,7 @@ export function HeroScreen() {
         <div className="space-y-4">
           <div className="flex items-start gap-3 text-sm">
             <Avatar className="mt-0.5 size-8 border">
-              <AvatarFallback>STAR</AvatarFallback>
+              <AvatarFallback>STRLS</AvatarFallback>
             </Avatar>
             <div className="bg-muted rounded-lg px-4 py-3">
               Schedule a meeting with John about the project next week
@@ -57,7 +57,7 @@ export function HeroScreen() {
         <div className="space-y-4">
           <div className="flex items-start gap-3 text-sm">
             <Avatar className="mt-0.5 size-8 border">
-              <AvatarFallback>STAR</AvatarFallback>
+              <AvatarFallback>STRLS</AvatarFallback>
             </Avatar>
             <div className="bg-muted rounded-lg px-4 py-3">Reply to Sarah's email about the proposal</div>
           </div>

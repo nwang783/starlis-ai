@@ -31,7 +31,7 @@ export function TeamSwitcher() {
                 C80.63,27.307,82.227,30.704,80.992,32.785z"
               />
             </svg>
-            {!isCollapsed && <span className="text-xl font-semibold">Starlis Assistant</span>}
+            {!isCollapsed && <span className="text-2xl font-semibold flex items-center h-8">starlis.ai</span>}
           </div>
         </Link>
       </SidebarMenuItem>

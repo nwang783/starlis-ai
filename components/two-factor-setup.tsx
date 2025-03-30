@@ -1,12 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { toast } from "@/components/ui/use-toast"
+import {
+  generateOTPSecret,
+  generateQRCode,
+  verifyTOTP,
+  enable2FA,
+  disable2FA,
+  generateRecoveryCodes,
+  get2FAStatus,
+} from "@/lib/2fa"
 import {
   Dialog,
   DialogContent,
@@ -25,21 +35,11 @@ import {
   ShieldOff,
   AlertTriangle,
 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/contexts/auth-context"
-import {
-  generateOTPSecret,
-  generateQRCode,
-  verifyTOTP,
-  enable2FA,
-  disable2FA,
-  generateRecoveryCodes,
-  get2FAStatus,
-} from "@/lib/2fa"
+import { Switch } from "@/components/ui/switch"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function TwoFactorSetup() {
   const { user, refreshUserData } = useAuth()
-  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false)
   const [showSetupDialog, setShowSetupDialog] = useState(false)
@@ -194,8 +194,11 @@ export function TwoFactorSetup() {
       const isValid = verifyTOTP(status.secret, disableCode)
 
       if (!isValid) {
-        setDisableError("Invalid verification code. Please try again.")
-        setIsLoading(false)
+        toast({
+          title: "Invalid code",
+          description: "Please check your authenticator app and try again.",
+          variant: "destructive",
+        })
         return
       }
 
@@ -248,258 +251,135 @@ export function TwoFactorSetup() {
         <CardTitle>Two-Factor Authentication (2FA)</CardTitle>
         <CardDescription>Add an extra layer of security to your account</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent>
         <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="2fa" className="text-base">Two-Factor Authentication</Label>
-              {isTwoFactorEnabled ? (
-                <ShieldCheck className="h-5 w-5 text-green-500" />
-              ) : (
-                <ShieldOff className="h-5 w-5 text-muted-foreground" />
-              )}
-            </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium">Two-Factor Authentication</h3>
             <p className="text-sm text-muted-foreground">
               {isTwoFactorEnabled
-                ? "Your account is protected with two-factor authentication."
-                : "Protect your account with an authenticator app for an extra layer of security."\
+                ? "Two-factor authentication is enabled for your account."
+                : "Protect your account with two-factor authentication."}
             </p>
           </div>
-          <Switch
-            id="2fa"
-            checked={isTwoFactorEnabled}
-            onCheckedChange={(checked) => {
-              if (checked) {
-                handleStartSetup()
-              } else {
-                handleStartDisable()
-              }
-            }}
-          />
-        </div>
-
-        {isTwoFactorEnabled && (
-          <>
-            <Alert className="mt-4">
-              <ShieldCheck className="h-4 w-4" />
-              <AlertTitle>Two-Factor Authentication is Enabled</AlertTitle>
-              <AlertDescription>
-                You have {recoveryCodesRemaining} recovery codes remaining. Save these codes in a safe place to prevent being locked out of your account.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="flex flex-col space-y-2 mt-4">
-              <Button variant="outline" onClick={handleShowRecoveryCodes}>
+          <div className="flex items-center space-x-4">
+            {isTwoFactorEnabled && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShowRecoveryCodes}
+                disabled={isLoading}
+              >
                 <KeyRound className="mr-2 h-4 w-4" />
                 View Recovery Codes
               </Button>
-            </div>
-          </>
-        )}
+            )}
+            <Button
+              variant={isTwoFactorEnabled ? "destructive" : "default"}
+              size="sm"
+              onClick={isTwoFactorEnabled ? handleStartDisable : handleStartSetup}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : isTwoFactorEnabled ? (
+                <ShieldOff className="mr-2 h-4 w-4" />
+              ) : (
+                <ShieldCheck className="mr-2 h-4 w-4" />
+              )}
+              {isTwoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
+            </Button>
+          </div>
+        </div>
       </CardContent>
 
-      {/* 2FA Setup Dialog */}
+      {/* Setup Dialog */}
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Set Up Two-Factor Authentication</DialogTitle>
             <DialogDescription>
               {setupStep === 1
                 ? "Scan the QR code with your authenticator app and enter the verification code."
-                : "Save your recovery codes in a safe place."}
+                : "Save these recovery codes in a secure place. You won't be able to see them again."}
             </DialogDescription>
           </DialogHeader>
-
           {setupStep === 1 ? (
-            <>
-              <div className="flex flex-col items-center space-y-4 py-4">
-                <div className="bg-white p-2 rounded-lg">
-                  {qrCodeUrl && (
-                    <img 
-                      src={qrCodeUrl || "/placeholder.svg"} 
-                      alt="QR Code" 
-                      className="w-48 h-48" 
-                    />
-                  )}
-                </div>
-                
-                <div className="w-full space-y-2">
-                  <Label htmlFor="secret">Secret Key (Manual Entry)</Label>
-                  <div className="flex space-x-2">
-                    <Input 
-                      id="secret" 
-                      value={secret} 
-                      readOnly 
-                      className="font-mono"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={() => {
-                        navigator.clipboard.writeText(secret)
-                        toast({
-                          title: "Copied",
-                          description: "Secret key copied to clipboard",
-                        })
-                      }}
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                {qrCodeUrl ? (
+                  <img src={qrCodeUrl} alt="2FA QR Code" className="w-48 h-48" />
+                ) : (
+                  <div className="w-48 h-48 flex items-center justify-center bg-muted">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="verificationCode">Verification Code</Label>
+                <Input
+                  id="verificationCode"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                  disabled={isLoading}
+                />
+                {verificationError && (
+                  <p className="text-sm text-destructive">{verificationError}</p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleVerifySetupCode}
+                  disabled={isLoading || verificationCode.length !== 6}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Verify and Enable
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Save Your Recovery Codes</AlertTitle>
+                <AlertDescription>
+                  These codes can be used to access your account if you lose your authenticator device.
+                  Store them in a secure place.
+                </AlertDescription>
+              </Alert>
+              <div className="grid grid-cols-2 gap-2">
+                {recoveryCodes.map((code, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-muted rounded-md"
+                  >
+                    <code className="text-sm">{code}</code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => copyToClipboard(code)}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    If you can't scan the QR code, enter this secret key manually in your authenticator app.
-                  </p>
-                </div>
-                
-                <div className="w-full space-y-2">
-                  <Label htmlFor="verificationCode">Verification Code</Label>
-                  <Input
-                    id="verificationCode"
-                    placeholder="123456"
-                    value={verificationCode}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '')
-                      if (value.length <= 6) setVerificationCode(value)
-                    }}
-                    className="font-mono text-center text-lg tracking-widest"
-                    maxLength={6}
-                  />
-                </div>
-                
-                {verificationError && (
-                  <Alert variant="destructive" className="w-full">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{verificationError}</AlertDescription>
-                  </Alert>
-                )}
+                ))}
               </div>
-              
-              <DialogFooter>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowSetupDialog(false)}
-                >
-                  Cancel
+              <div className="flex justify-between items-center">
+                <Button variant="outline" onClick={copyAllCodesToClipboard}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy All
                 </Button>
-                <Button 
-                  onClick={handleVerifySetupCode} 
-                  disabled={isLoading || verificationCode.length !== 6}
-                >
-                  {isLoading ? (
-                    <>
-                      <RotateCcw className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify"
-                  )}
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <div className="flex flex-col space-y-4 py-4">
-                <Alert variant="warning">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Important</AlertTitle>
-                  <AlertDescription>
-                    These recovery codes will only be shown once. Save them in a secure location. Each code can only be used once.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="bg-muted rounded-lg p-4 grid grid-cols-2 gap-2">
-                  {recoveryCodes.map((code, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <code className="font-mono text-sm">{code}</code>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6" 
-                        onClick={() => copyToClipboard(code)}
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="flex justify-center">
-                  <Button 
-                    variant="outline" 
-                    onClick={copyAllCodesToClipboard}
-                  >
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy All Codes
-                  </Button>
-                </div>
+                <Button onClick={handleCompleteSetup}>I've Saved These</Button>
               </div>
-              
-              <DialogFooter>
-                <Button onClick={handleCompleteSetup}>
-                  Complete Setup
-                </Button>
-              </DialogFooter>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Recovery Codes Dialog */}
-      <Dialog open={showRecoveryCodesDialog} onOpenChange={setShowRecoveryCodesDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Your Recovery Codes</DialogTitle>
-            <DialogDescription>
-              Each code can only be used once. Keep these codes in a safe place.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex flex-col space-y-4 py-4">
-            <Alert variant="warning">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Important</AlertTitle>
-              <AlertDescription>
-                If you lose your authenticator device, you can use these codes to regain access to your account.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="bg-muted rounded-lg p-4 grid grid-cols-2 gap-2">
-              {recoveryCodes.map((code, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <code className="font-mono text-sm">{code}</code>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6" 
-                    onClick={() => copyToClipboard(code)}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex justify-center">
-              <Button 
-                variant="outline" 
-                onClick={copyAllCodesToClipboard}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Copy All Codes
-              </Button>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button onClick={() => setShowRecoveryCodesDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Disable 2FA Dialog */}
+      {/* Disable Dialog */}
       <Dialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -508,62 +388,87 @@ export function TwoFactorSetup() {
               Enter the verification code from your authenticator app to disable 2FA.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="flex flex-col space-y-4 py-4">
-            <Alert variant="destructive">
-              <ShieldAlert className="h-4 w-4" />
-              <AlertTitle>Warning</AlertTitle>
-              <AlertDescription>
-                Disabling two-factor authentication will make your account less secure. Only proceed if absolutely necessary.
-              </AlertDescription>
-            </Alert>
-            
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="disableCode">Verification Code</Label>
               <Input
                 id="disableCode"
-                placeholder="123456"
                 value={disableCode}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[^0-9]/g, '')
-                  if (value.length <= 6) setDisableCode(value)
-                }}
-                className="font-mono text-center text-lg tracking-widest"
+                onChange={(e) => setDisableCode(e.target.value)}
+                placeholder="Enter 6-digit code"
                 maxLength={6}
+                disabled={isLoading}
               />
-            </div>
-            
-            {disableError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{disableError}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDisableDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDisable2FA} 
-              disabled={isLoading || disableCode.length !== 6}
-            >
-              {isLoading ? (
-                <>
-                  <RotateCcw className="mr-2 h-4 w-4 animate-spin" />
-                  Disabling...
-                </>
-              ) : (
-                "Disable 2FA"
+              {disableError && (
+                <p className="text-sm text-destructive">{disableError}</p>
               )}
-            </Button>
-          </DialogFooter>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={handleDisable2FA}
+                disabled={isLoading || disableCode.length !== 6}
+                variant="destructive"
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Disable 2FA
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recovery Codes Dialog */}
+      <Dialog open={showRecoveryCodesDialog} onOpenChange={setShowRecoveryCodesDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Recovery Codes</DialogTitle>
+            <DialogDescription>
+              You have {recoveryCodesRemaining} recovery codes remaining. Generate new codes if needed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Save Your Recovery Codes</AlertTitle>
+              <AlertDescription>
+                These codes can be used to access your account if you lose your authenticator device.
+                Store them in a secure place.
+              </AlertDescription>
+            </Alert>
+            <div className="grid grid-cols-2 gap-2">
+              {recoveryCodes.map((code, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 bg-muted rounded-md"
+                >
+                  <code className="text-sm">{code}</code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => copyToClipboard(code)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between items-center">
+              <Button variant="outline" onClick={copyAllCodesToClipboard}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy All
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleStartSetup}
+                disabled={isLoading}
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Generate New Codes
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </Card>

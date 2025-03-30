@@ -19,6 +19,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
+/**
+ * This component collects voice settings during onboarding.
+ * The collected data is passed to the parent component via onNext(),
+ * which should save it to Firebase in the onboarding.voice path.
+ * These same values are also used in the settings page under both
+ * the voice and onboarding.voice paths for consistency.
+ */
 type VoiceSettings = {
   twilioSid: string
   twilioApiKey: string
@@ -94,12 +101,14 @@ export function Step3VoiceSetup({
       // Simulate API call
       setTimeout(() => {
         setIsLoading(false)
+        console.log("Voice setup complete, calling onNext with:", localSettings)
         onNext(localSettings)
       }, 500)
     }
   }
 
   const handleSkip = () => {
+    console.log("Skipping voice setup, calling onNext with:", localSettings)
     onNext(localSettings)
   }
 
@@ -117,7 +126,7 @@ export function Step3VoiceSetup({
     <>
       <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-2xl">Step 3: Set Up Voice Capabilities</CardTitle>
+          <CardTitle className="text-2xl">Step 4: Set Up Voice Capabilities</CardTitle>
           <CardDescription>Configure voice services to enable phone calls and voice responses</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -136,11 +145,38 @@ export function Step3VoiceSetup({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <svg className="h-6 w-6 text-[#F22F46]" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M17.8,13.75a1,1,0,0,0-1.39.26,1.24,1.24,0,0,1-1,.53,1.29,1.29,0,0,1-1-.53l-4.94-6.69a3.26,3.26,0,0,0-2.62-1.32,3.23,3.23,0,0,0-2.61,1.32L1.59,11.45a.92.92,0,0,0,.16,1.31.94.94,0,0,0,1.31-.15L5.7,8.48a1.29,1.29,0,0,1,1-.53,1.29,1.29,0,0,1,1,.53L12.7,15.17a3.21,3.21,0,0,0,2.61,1.32,3.2,3.2,0,0,0,2.62-1.32l2.13-2.89A1,1,0,0,0,17.8,13.75Z" />
-                      <path d="M17.25,0H6.75A2.75,2.75,0,0,0,4,2.75v18.5A2.75,2.75,0,0,0,6.75,24h10.5A2.75,2.75,0,0,0,20,21.25V2.75A2.75,2.75,0,0,0,17.25,0ZM12,22a1.25,1.25,0,1,1,1.25-1.25A1.25,1.25,0,0,1,12,22Z" />
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="12" fill="#F22F46" />
+                      <path
+                        d="M10.5 14.5L13.5 17.5L16.5 14.5"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M7.5 9.5L10.5 6.5L13.5 9.5"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M10.5 6.5V17.5"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M13.5 17.5V10.5"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
-                    <h3 className="font-medium">Twilio Integration</h3>
+                    <h3 className="font-medium text-sm">Twilio Integration</h3>
                   </div>
                   {isTwilioComplete && <span className="text-xs font-medium text-green-500">Complete</span>}
                 </div>
@@ -207,11 +243,14 @@ export function Step3VoiceSetup({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <svg className="h-6 w-6 text-[#5D5AFF]" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12,2A10,10,0,1,0,22,12,10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" />
-                      <path d="M15,11H13V7a1,1,0,0,0-2,0v5a1,1,0,0,0,1,1h3a1,1,0,0,0,0-2Z" />
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="24" height="24" rx="7" fill="#5D5AFF" />
+                      <path d="M6 9L6 15" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M10 7L10 17" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M14 10L14 14" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M18 8L18 16" stroke="white" strokeWidth="2" strokeLinecap="round" />
                     </svg>
-                    <h3 className="font-medium">ElevenLabs Integration</h3>
+                    <h3 className="font-medium text-sm">ElevenLabs Integration</h3>
                   </div>
                   {isElevenLabsComplete && <span className="text-xs font-medium text-green-500">Complete</span>}
                 </div>

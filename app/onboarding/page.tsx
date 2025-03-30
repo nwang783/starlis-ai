@@ -3,18 +3,26 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { Step1EmailSetup } from "@/components/onboarding/step1-email"
-import { Step2Integrations } from "@/components/onboarding/step2-integrations"
-import { Step3VoiceSetup } from "@/components/onboarding/step3-voice"
-import { Step4Completion } from "@/components/onboarding/step4-completion"
+import { Step1EmailSetup } from "@/components/onboarding/step2-email"
+import { Step2Integrations } from "@/components/onboarding/step3-integrations"
+import { Step3VoiceSetup } from "@/components/onboarding/step4-voice"
+import { Step4Completion } from "@/components/onboarding/step5-completion"
 import { OnboardingProgress } from "@/components/onboarding/onboarding-progress"
 import { updateUserData } from "@/lib/firebase"
 import { Loader2 } from "lucide-react"
+import { VerificationStep } from "@/components/onboarding/step1-verification-step"
+import { LogoIcon } from "@/components/logo-icon"
 
 export default function OnboardingPage() {
   const { user, userData, refreshUserData } = useAuth()
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
+
+  // Add verification state
+  const [isVerified, setIsVerified] = useState(false)
+
+  // Update the currentStep state initialization
+  const [currentStep, setCurrentStep] = useState(1) // Start at step 1 (Verification)
+
   const [isLoading, setIsLoading] = useState(true)
   const [onboardingData, setOnboardingData] = useState({
     emailSetupComplete: false,
@@ -51,17 +59,6 @@ export default function OnboardingPage() {
             router.push("/dashboard")
             return
           }
-
-          // Set the current step based on what's completed
-          if (userData.onboarding.voiceSetupComplete) {
-            setCurrentStep(4)
-          } else if (userData.onboarding.integrationsSetupComplete) {
-            setCurrentStep(3)
-          } else if (userData.onboarding.emailSetupComplete) {
-            setCurrentStep(2)
-          } else {
-            setCurrentStep(1)
-          }
         }
       } catch (error) {
         console.error("Error loading onboarding data:", error)
@@ -72,6 +69,35 @@ export default function OnboardingPage() {
 
     loadOnboardingData()
   }, [user, userData, router])
+
+  useEffect(() => {
+    if (!userData) return
+
+    // Check if user has already verified email and phone
+    if (userData?.emailVerified && userData?.phoneVerified) {
+      setIsVerified(true)
+    } else {
+      setIsVerified(false)
+    }
+
+    // Set the current step based on verification and onboarding data
+    if (userData?.emailVerified && userData?.phoneVerified) {
+      if (userData?.onboarding?.voiceSetupComplete) {
+        setCurrentStep(5) // Set to completion step if voice setup is complete
+      } else if (userData?.onboarding?.integrationsSetupComplete) {
+        setCurrentStep(4) // Voice setup step
+      } else if (userData?.onboarding?.emailSetupComplete) {
+        setCurrentStep(3) // Integrations step
+      } else {
+        setCurrentStep(2) // Email forwarding step
+      }
+    } else {
+      setCurrentStep(1) // Verification step
+    }
+  }, [userData])
+
+  // Add a debug output to help diagnose the issue
+  console.log("Current step in page component:", currentStep)
 
   const handleNext = async (stepData: any) => {
     if (!user) return
@@ -95,6 +121,7 @@ export default function OnboardingPage() {
 
       // Move to next step
       setCurrentStep((prev) => prev + 1)
+      console.log("Moving to next step:", currentStep + 1)
 
       // Refresh user data
       await refreshUserData()
@@ -146,15 +173,14 @@ export default function OnboardingPage() {
     )
   }
 
+  // Update the return statement to include the verification step
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b bg-background">
         <div className="container flex h-16 items-center px-4">
           <div className="flex items-center space-x-2">
-            <div className="size-8 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">STAR</span>
-            </div>
-            <span className="font-bold text-xl">Starlis</span>
+            <LogoIcon className="h-8 w-8" />
+            <span className="font-bold text-xl">starlis.ai</span>
           </div>
         </div>
       </header>
@@ -164,40 +190,54 @@ export default function OnboardingPage() {
           <OnboardingProgress currentStep={currentStep} />
 
           <div className="mt-8">
-            {currentStep === 1 && (
-              <Step1EmailSetup
-                starlisEmail={userData?.starlisForwardingEmail || ""}
-                onNext={(data) => handleNext({ emailSetupComplete: true })}
+            {!isVerified ? (
+              <VerificationStep
+                email={userData?.email || ""}
+                phoneNumber={userData?.phoneNumber || ""}
+                refreshUserData={refreshUserData}
+                onNext={() => {
+                  setIsVerified(true)
+                  setCurrentStep(2) // Move to step 2 after verification
+                }}
               />
-            )}
+            ) : (
+              <>
+                {currentStep === 2 && (
+                  <Step1EmailSetup
+                    starlisEmail={userData?.starlisForwardingEmail || ""}
+                    onNext={(data) => handleNext({ emailSetupComplete: true })}
+                  />
+                )}
 
-            {currentStep === 2 && (
-              <Step2Integrations
-                integrations={onboardingData.integrations}
-                onNext={(data) =>
-                  handleNext({
-                    integrationsSetupComplete: true,
-                    integrations: data,
-                  })
-                }
-                onBack={handleBack}
-              />
-            )}
+                {currentStep === 3 && (
+                  <Step2Integrations
+                    integrations={onboardingData.integrations}
+                    onNext={(data) =>
+                      handleNext({
+                        integrationsSetupComplete: true,
+                        integrations: data,
+                      })
+                    }
+                    onBack={handleBack}
+                  />
+                )}
 
-            {currentStep === 3 && (
-              <Step3VoiceSetup
-                voiceSettings={onboardingData.voice}
-                onNext={(data) =>
-                  handleNext({
-                    voiceSetupComplete: true,
-                    voice: data,
-                  })
-                }
-                onBack={handleBack}
-              />
-            )}
+                {currentStep === 4 && (
+                  <Step3VoiceSetup
+                    voiceSettings={onboardingData.voice}
+                    onNext={(data) =>
+                      handleNext({
+                        voiceSetupComplete: true,
+                        voice: data,
+                      })
+                    }
+                    onBack={handleBack}
+                  />
+                )}
 
-            {currentStep === 4 && <Step4Completion onComplete={handleComplete} onBack={handleBack} />}
+                {currentStep === 5 && <Step4Completion onComplete={handleComplete} onBack={handleBack} />}
+              </>
+            )}
           </div>
         </div>
       </main>
