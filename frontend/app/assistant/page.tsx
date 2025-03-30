@@ -536,34 +536,44 @@ export default function AssistantPage() {
   // Add this function to generate a conversation name using the LLM
   const generateConversationName = async (message: string): Promise<string> => {
     try {
-      const response = await processAIMessage(
-        user?.uid || '',
-        `Generate a short, descriptive title (max 50 characters) for a conversation that starts with this message: "${message}". The title should be concise and reflect the main topic or purpose of the conversation. Return only the title, no additional text.`,
-        [],
-        selectedModel
-      )
+      // Use a separate API endpoint for title generation
+      const response = await fetch("/api/generate-title", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message,
+          model: selectedModel
+        }),
+      });
 
-      if (!response || !response.message) {
-        throw new Error("Failed to generate conversation name")
+      if (!response.ok) {
+        throw new Error("Failed to generate conversation name");
+      }
+
+      const data = await response.json();
+      if (!data || !data.title) {
+        throw new Error("Invalid response from title generation");
       }
 
       // Clean up the response to ensure it's a valid title
-      let title = response.message.content.trim()
+      let title = data.title.trim();
       // Remove any quotes or special characters
-      title = title.replace(/["']/g, '')
+      title = title.replace(/["']/g, '');
       // Remove any markdown formatting
-      title = title.replace(/[*_`]/g, '')
+      title = title.replace(/[*_`]/g, '');
       // Ensure it's not too long
-      title = title.slice(0, 50)
+      title = title.slice(0, 50);
       // If it's empty or just whitespace, use a default
       if (!title.trim()) {
-        title = `Conversation about ${message.slice(0, 30)}...`
+        title = `Conversation about ${message.slice(0, 30)}...`;
       }
 
-      return title
+      return title;
     } catch (error) {
-      console.error("Error generating conversation name:", error)
-      return `Conversation about ${message.slice(0, 30)}...`
+      console.error("Error generating conversation name:", error);
+      return `Conversation about ${message.slice(0, 30)}...`;
     }
   }
 
