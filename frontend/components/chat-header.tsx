@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { MoreVertical, Pencil, Trash2, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { TypewriterText } from "@/components/typewriter-text"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -26,10 +25,16 @@ export function ChatHeader({ conversationId, initialTitle, onDelete, onRename }:
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [newTitle, setNewTitle] = useState(initialTitle)
+  const [currentTitle, setCurrentTitle] = useState(initialTitle)
+
+  useEffect(() => {
+    setCurrentTitle(initialTitle)
+  }, [initialTitle])
 
   const handleRename = async () => {
-    if (newTitle.trim() && newTitle !== initialTitle) {
+    if (newTitle.trim() && newTitle !== currentTitle) {
       await onRename(newTitle.trim())
+      setCurrentTitle(newTitle.trim())
     }
     setIsEditing(false)
   }
@@ -43,11 +48,9 @@ export function ChatHeader({ conversationId, initialTitle, onDelete, onRename }:
     <div className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 animate-in slide-in-from-top-4 duration-300">
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2">
-          <TypewriterText
-            text={initialTitle}
-            speed={30}
-            className="text-lg font-semibold"
-          />
+          <div className="text-lg font-semibold">
+            {currentTitle}
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -55,9 +58,12 @@ export function ChatHeader({ conversationId, initialTitle, onDelete, onRename }:
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <Dialog>
+              <Dialog open={isEditing} onOpenChange={setIsEditing}>
                 <DialogTrigger asChild>
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <DropdownMenuItem onSelect={(e) => {
+                    e.preventDefault()
+                    setIsEditing(true)
+                  }}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Rename
                   </DropdownMenuItem>
@@ -74,13 +80,17 @@ export function ChatHeader({ conversationId, initialTitle, onDelete, onRename }:
                         value={newTitle}
                         onChange={(e) => setNewTitle(e.target.value)}
                         placeholder="Enter conversation name"
-                        onKeyDown={(e) => e.key === "Enter" && handleRename()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleRename()
+                          }
+                        }}
                       />
                     </div>
                     <div className="flex justify-end gap-2">
-                      <DialogClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                      </DialogClose>
+                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        Cancel
+                      </Button>
                       <Button onClick={handleRename}>Save</Button>
                     </div>
                   </div>

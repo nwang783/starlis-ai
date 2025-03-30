@@ -147,7 +147,12 @@ export default function AssistantPage() {
         // Then load messages
         const messages = await getConversationMessages(user.uid, chatId)
         if (messages.length > 0) {
-          setMessages(messages)
+          // Ensure loaded messages don't have the isNew flag
+          const messagesWithoutNewFlag = messages.map(msg => ({
+            ...msg,
+            isNew: false
+          }))
+          setMessages(messagesWithoutNewFlag)
           setIsChatExpanded(true) // Expand the chat view when loading an existing conversation
         }
       } catch (error) {
@@ -274,18 +279,20 @@ export default function AssistantPage() {
         )
 
         if (aiResponse && aiResponse.message) {
-          const aiMessage: Message = {
+          const aiMessage: Message & { isNew?: boolean } = {
             id: uuidv4(),
             type: 'text',
             role: 'assistant',
             content: aiResponse.message.content,
             timestamp: new Date().toISOString(),
+            isNew: true // Set isNew flag for new messages
           }
 
           setMessages((prev) => [...prev, aiMessage])
 
-          // Save AI response to Firestore
-          await addMessage(user.uid, chatId, aiMessage)
+          // Save AI response to Firestore without the isNew flag
+          const { isNew, ...messageToSave } = aiMessage
+          await addMessage(user.uid, chatId, messageToSave)
         }
       } catch (aiError) {
         console.error("Error processing AI message:", aiError)
@@ -433,7 +440,25 @@ export default function AssistantPage() {
 
     try {
       await updateConversationName(user.uid, currentChatId, newTitle)
+      
+      // Update the title in the current conversation
       setConversationTitle(newTitle)
+      
+      // Update the title in recent conversations
+      setRecentConversations(prev => 
+        prev.map(conv => 
+          conv.id === currentChatId 
+            ? { ...conv, name: newTitle }
+            : conv
+        )
+      )
+      
+      // Dispatch a custom event to notify other components
+      const event = new CustomEvent('conversationRenamed', {
+        detail: { conversationId: currentChatId, newTitle }
+      })
+      window.dispatchEvent(event)
+      
       toast({
         title: "Success",
         description: "Conversation renamed successfully.",
