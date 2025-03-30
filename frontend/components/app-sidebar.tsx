@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { ArrowLeft, BarChart3, Phone, PieChart, Settings2 } from "lucide-react"
+import { ArrowLeft, Phone, PieChart, Settings2 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 
@@ -48,12 +48,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "/calls",
         icon: Phone,
         isActive: pathname === "/calls",
-      },
-      {
-        title: "Usage",
-        url: "/usage",
-        icon: BarChart3,
-        isActive: pathname === "/usage",
       },
       {
         title: "Settings",

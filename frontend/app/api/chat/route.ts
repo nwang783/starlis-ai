@@ -1,17 +1,11 @@
-import { OpenAI } from "openai"
 import { NextResponse } from "next/server"
 import { extractPhoneNumber } from "@/lib/utils"
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 import { processMessageWithClaude } from "@/lib/server/anthropic-service"
 
-// Initialize OpenAI client (server-side only)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // Use server-side env variable
-})
-
 export async function POST(req: Request) {
   try {
-    const { userId, content, messages, model = "gpt-4" } = await req.json()
+    const { userId, content, messages, model = "claude-3-7-sonnet-latest" } = await req.json()
 
     // Check if the message contains a call intent
     const callIntent =
@@ -62,19 +56,8 @@ export async function POST(req: Request) {
       content,
     })
 
-    let aiResponse: string
-
-    // Handle different AI models
-    if (model.startsWith("claude")) {
-      aiResponse = await processMessageWithClaude(allMessages, model as "claude-3-sonnet" | "claude-3-haiku")
-    } else {
-      const completion = await openai.chat.completions.create({
-        model: model,
-        messages: allMessages,
-        temperature: 0.7,
-      })
-      aiResponse = completion.choices[0].message.content || ""
-    }
+    // Use Anthropic's API by default
+    const aiResponse = await processMessageWithClaude(allMessages, model as "claude-3-7-sonnet-latest" | "claude-3-5-haiku-latest")
 
     return NextResponse.json({
       message: {
