@@ -143,10 +143,10 @@ export default function SettingsPage() {
 
   // Add state variables for assistant settings
   const [assistantName, setAssistantName] = useState("Starlis")
-  const [systemPrompt, setSystemPrompt] = useState(
+  const [customInstructions, setCustomInstructions] = useState(
     "You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.",
   )
-  const [temperature, setTemperature] = useState("0.7")
+  const [personality, setPersonality] = useState("helpful and professional")
 
   // Add a new state for voice settings
   const [voiceId, setVoiceId] = useState("default")
@@ -366,11 +366,11 @@ export default function SettingsPage() {
 
       // Initialize assistant settings from userData
       setAssistantName(userData.assistant?.name || "Starlis")
-      setSystemPrompt(
-        userData.assistant?.systemPrompt ||
+      setCustomInstructions(
+        userData.assistant?.customInstructions ||
           "You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.",
       )
-      setTemperature(userData.assistant?.temperature || "0.7")
+      setPersonality(userData.assistant?.personality || "helpful and professional")
 
       // Initialize voice settings from userData
       setVoiceId(userData.assistant?.voice?.id || "default")
@@ -951,7 +951,7 @@ export default function SettingsPage() {
   }, [showSmtpModal, smtpSettings])
 
   const handleSaveAssistantSettings = async () => {
-    if (!user) return
+    if (!user || !userData) return
 
     setIsLoading(true)
     try {
@@ -967,8 +967,12 @@ export default function SettingsPage() {
         await setDoc(secretaryDocRef, {
           user_id: user.uid,
           name: assistantName,
-          system_prompt: systemPrompt,
-          temperature: parseFloat(temperature),
+          custom_instructions: customInstructions,
+          personality: personality,
+          email: userData.starlisForwardingEmail,
+          user_email: userData.email,
+          user_full_name: `${userData.firstName} ${userData.lastName}`,
+          secretary_id: "helpful and professional",
           created_at: serverTimestamp(),
           updated_at: serverTimestamp()
         })
@@ -977,8 +981,8 @@ export default function SettingsPage() {
         secretaryDocRef = querySnapshot.docs[0].ref
         await updateDoc(secretaryDocRef, {
           name: assistantName,
-          system_prompt: systemPrompt,
-          temperature: parseFloat(temperature),
+          custom_instructions: customInstructions,
+          personality: personality,
           updated_at: serverTimestamp()
         })
       }
@@ -987,8 +991,8 @@ export default function SettingsPage() {
       await updateUserData(user.uid, {
         assistant: {
           name: assistantName,
-          systemPrompt: systemPrompt,
-          temperature: temperature,
+          customInstructions: customInstructions,
+          personality: personality,
         },
       })
 
@@ -1638,13 +1642,13 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="system-prompt">System Prompt</Label>
+                    <Label htmlFor="custom-instructions">Custom Instructions</Label>
                     <textarea
-                      id="system-prompt"
+                      id="custom-instructions"
                       className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity."
-                      value={systemPrompt}
-                      onChange={(e) => setSystemPrompt(e.target.value)}
+                      value={customInstructions}
+                      onChange={(e) => setCustomInstructions(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
                       This prompt defines how the AI assistant behaves and responds
@@ -1652,23 +1656,15 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="temperature">Response Creativity</Label>
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm text-muted-foreground">Precise</span>
-                      <Input
-                        id="temperature"
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={temperature}
-                        onChange={(e) => setTemperature(e.target.value)}
-                        className="flex-1"
-                      />
-                      <span className="text-sm text-muted-foreground">Creative</span>
-                    </div>
+                    <Label htmlFor="personality">Personality</Label>
+                    <Input
+                      id="personality"
+                      placeholder="helpful and professional"
+                      value={personality}
+                      onChange={(e) => setPersonality(e.target.value)}
+                    />
                     <p className="text-xs text-muted-foreground">
-                      Adjust how creative or precise the assistant's responses should be
+                      Define the personality traits of your AI assistant
                     </p>
                   </div>
                 </CardContent>
