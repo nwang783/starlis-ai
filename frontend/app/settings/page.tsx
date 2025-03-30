@@ -258,12 +258,14 @@ export default function SettingsPage() {
             setCustomInstructions(secretaryData.custom_instructions || "You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.")
             setPersonality(secretaryData.personality || "helpful and professional")
             setVoiceEnabled(secretaryData.voice_enabled !== false)
+            setStarlisEmail(secretaryData.email || "")
           } else {
             // Set default values if no secretary exists
             setAssistantName("Starlis")
             setCustomInstructions("You are Starlis, a helpful assistant designed to manage emails, schedule meetings, and boost productivity. You are professional, efficient, and friendly. You help users manage their time, respond to emails, and organize their schedule.")
             setPersonality("helpful and professional")
             setVoiceEnabled(true)
+            setStarlisEmail("")
           }
         }
       } catch (error) {
@@ -859,11 +861,11 @@ export default function SettingsPage() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(starlisEmail)
     toast({
-      title: "Copied to clipboard",
-      description: "The email address has been copied to your clipboard.",
+      title: "Email copied",
+      description: "Your Starlis forwarding email has been copied to clipboard.",
     })
   }
 
@@ -1331,7 +1333,7 @@ export default function SettingsPage() {
                       </p>
                       <div className="flex items-center space-x-2">
                         <Input value={starlisEmail} readOnly className="font-mono" />
-                        <Button variant="outline" size="icon" onClick={() => copyToClipboard(starlisEmail)}>
+                        <Button variant="outline" size="icon" onClick={copyToClipboard}>
                           <Copy className="h-4 w-4" />
                           <span className="sr-only">Copy email address</span>
                         </Button>
