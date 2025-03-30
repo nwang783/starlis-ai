@@ -300,28 +300,33 @@ fastify.register(async (fastifyInstance) => {
                 });
 
                 if (streamSid) {
+                  let audioPayload = null;
+                  
                   if (message.audio?.chunk) {
-                    console.log('[ElevenLabs] Sending Audio Chunk via Twilio Stream');
-                    const audioData = {
-                      event: 'media',
-                      streamSid,
-                      media: {
-                        payload: message.audio.chunk,
-                      },
-                    };
-                    ws.send(JSON.stringify(audioData));
+                    console.log('[ElevenLabs] Using audio chunk');
+                    audioPayload = message.audio.chunk;
                   } else if (message.audio_event?.audio_base_64) {
-                    console.log('[ElevenLabs] Sending Base64 Audio via Twilio Stream');
+                    console.log('[ElevenLabs] Using audio_base_64');
+                    audioPayload = message.audio_event.audio_base_64;
+                  }
+
+                  if (audioPayload) {
+                    console.log('[ElevenLabs] Sending Audio via Twilio Stream');
+                    console.log('[ElevenLabs] Audio Payload Length:', audioPayload.length);
+                    
                     const audioData = {
                       event: 'media',
                       streamSid,
                       media: {
-                        payload: message.audio_event.audio_base_64,
+                        payload: audioPayload,
+                        track: 'inbound_track'
                       },
                     };
+                    
                     ws.send(JSON.stringify(audioData));
+                    console.log('[ElevenLabs] Audio sent successfully');
                   } else {
-                    console.log('[ElevenLabs] No audio payload found');
+                    console.log('[ElevenLabs] No valid audio payload found');
                   }
                 } else {
                   console.log('[ElevenLabs] Received audio but no StreamSid yet');
@@ -374,10 +379,12 @@ fastify.register(async (fastifyInstance) => {
 
         elevenLabsWs.on('error', (error) => {
           console.error('[ElevenLabs] WebSocket error:', error);
+          isElevenLabsConnected = false;
         });
 
         elevenLabsWs.on('close', () => {
           console.log('[ElevenLabs] Disconnected');
+          isElevenLabsConnected = false;
         });
       } catch (error) {
         console.error('[ElevenLabs] Setup error:', error);
