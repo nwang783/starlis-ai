@@ -1,3 +1,4 @@
+// app/api/auth/google/token/route.ts
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 
