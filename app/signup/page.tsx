@@ -15,7 +15,6 @@ import { GoogleLoginButton } from "@/components/google-login-button"
 import { signUpWithEmail } from "@/lib/firebase"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import Image from "next/image"
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -234,12 +233,10 @@ export default function SignUpPage() {
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[450px] z-10">
         <div className="flex flex-col space-y-2 text-center">
           <div className="flex items-center justify-center mb-4 gap-2">
-            <Image
-              src="/logo.png"
+            <img
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/circle-with-irregular-shape-inside-svgrepo-com-krMECzHbCO4kkkJCa2jNlslczUaIzc.svg"
               alt="Starlis Logo"
-              width={40}
-              height={40}
-              className="rounded-full"
+              className="h-10 dark:brightness-0 dark:invert"
             />
             <span className="text-xl font-bold">starlis.ai</span>
           </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import type { LucideIcon } from "lucide-react"
+import { Zap } from "lucide-react"
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
@@ -13,6 +14,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 export type NavItem = {
   title: string
@@ -49,7 +51,15 @@ export function NavPlatform({
             <Collapsible key={item.title} asChild defaultOpen={item.isActive} className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
+                  <SidebarMenuButton 
+                    tooltip={item.title}
+                    className={cn(
+                      "group relative w-full transition-colors duration-200 ease-in-out",
+                      "hover:bg-accent/50",
+                      "dark:hover:bg-accent/50",
+                      "z-50"
+                    )}
+                  >
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </SidebarMenuButton>
@@ -58,7 +68,15 @@ export function NavPlatform({
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
+                        <SidebarMenuSubButton 
+                          asChild
+                          className={cn(
+                            "group relative w-full transition-colors duration-200 ease-in-out",
+                            "hover:bg-accent/50",
+                            "dark:hover:bg-accent/50",
+                            "z-50"
+                          )}
+                        >
                           <a href={subItem.url}>
                             <span>{subItem.title}</span>
                           </a>
@@ -71,7 +89,16 @@ export function NavPlatform({
             </Collapsible>
           ) : (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton 
+                asChild 
+                tooltip={item.title}
+                className={cn(
+                  "group relative w-full transition-colors duration-200 ease-in-out",
+                  "hover:bg-accent/50",
+                  "dark:hover:bg-accent/50",
+                  "z-50"
+                )}
+              >
                 <a href={item.url}>
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
@@ -80,6 +107,24 @@ export function NavPlatform({
             </SidebarMenuItem>
           ),
         )}
+        {/* Add Sandbox option after the mapped items */}
+        <SidebarMenuItem>
+          <SidebarMenuButton 
+            asChild 
+            tooltip="Sandbox"
+            className={cn(
+              "group relative w-full transition-colors duration-200 ease-in-out",
+              "hover:bg-accent/50",
+              "dark:hover:bg-accent/50",
+              "z-50"
+            )}
+          >
+            <a href="/sandbox">
+              <Zap />
+              <span>Sandbox</span>
+            </a>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   )

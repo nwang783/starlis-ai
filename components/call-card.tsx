@@ -285,13 +285,13 @@ export function CallCard({ callSid, phoneNumber, contactName, onCallEnded, isDem
     const { dismiss } = toast({
       id: toastId,
       description: (
-        <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4 shadow-lg w-[350px] max-w-full overflow-hidden">
+        <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900 p-4 shadow-lg w-[350px] max-w-full overflow-hidden">
           {/* Call status and duration */}
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200" data-call-status>
+            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200" data-call-status>
               {callStatus === "in-progress" ? "Connected" : callStatus}
             </span>
-            <span className="text-xs text-zinc-600 dark:text-zinc-400" data-call-duration>
+            <span className="text-xs text-neutral-600 dark:text-neutral-400" data-call-duration>
               {formatCallDuration()}
             </span>
           </div>
@@ -305,20 +305,20 @@ export function CallCard({ callSid, phoneNumber, contactName, onCallEnded, isDem
                 className="h-12 w-12 rounded-full object-cover"
               />
             ) : contactName ? (
-              <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground text-lg font-medium">{getInitials(contactName)}</span>
+              <div className="h-12 w-12 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                <span className="text-neutral-foreground text-lg font-medium">{getInitials(contactName)}</span>
               </div>
             ) : (
-              <div className="h-12 w-12 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center">
-                <User className="h-6 w-6 text-zinc-600 dark:text-zinc-300" />
+              <div className="h-12 w-12 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                <User className="h-6 w-6 text-neutral-600 dark:text-neutral-300" />
               </div>
             )}
 
             <div className="min-w-0 flex-1">
               {contactName && (
-                <div className="font-medium text-zinc-900 dark:text-zinc-100 truncate">{contactName}</div>
+                <div className="font-medium text-neutral-900 dark:text-neutral-100 truncate">{contactName}</div>
               )}
-              <div className="text-sm text-zinc-600 dark:text-zinc-400 truncate">
+              <div className="text-sm text-neutral-600 dark:text-neutral-400 truncate">
                 {formatPhoneNumber(phoneNumber) || "Unknown number"}
               </div>
             </div>
@@ -344,14 +344,14 @@ export function CallCard({ callSid, phoneNumber, contactName, onCallEnded, isDem
               variant="outline"
               className={cn(
                 "h-10 w-10 rounded-full",
-                !isMuted ? "border-primary bg-white dark:bg-zinc-800" : "border-zinc-300 dark:border-zinc-700",
+                !isMuted ? "border-primary bg-white dark:bg-neutral-800" : "border-neutral-300 dark:border-neutral-700",
               )}
               onClick={toggleMute}
             >
               {!isMuted ? (
                 <Volume2 className="h-4 w-4 text-primary" />
               ) : (
-                <VolumeX className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                <VolumeX className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
               )}
               <span className="sr-only">{isMuted ? "Unmute" : "Mute"}</span>
             </Button>

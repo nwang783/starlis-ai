@@ -74,30 +74,30 @@ export function ToastProvider() {
       id: `call-${callSid}`,
       title: "Active Call",
       description: (
-        <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 p-4 shadow-lg w-full">
+        <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900 p-4 shadow-lg w-full">
           {/* Call status and duration */}
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
               {callStatus === "in-progress" ? "Connected" : callStatus || "Connected"}
             </span>
-            <span className="text-xs text-zinc-600 dark:text-zinc-400">00:00</span>
+            <span className="text-xs text-neutral-600 dark:text-neutral-400">00:00</span>
           </div>
 
           {/* Contact info */}
           <div className="flex items-center gap-3 mb-4">
             {contactName ? (
-              <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground text-lg font-medium">{getInitials(contactName)}</span>
+              <div className="h-12 w-12 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                <span className="text-neutral-foreground text-lg font-medium">{getInitials(contactName)}</span>
               </div>
             ) : (
-              <div className="h-12 w-12 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center">
-                <User className="h-6 w-6 text-zinc-600 dark:text-zinc-300" />
+              <div className="h-12 w-12 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                <User className="h-6 w-6 text-neutral-600 dark:text-neutral-300" />
               </div>
             )}
 
             <div>
-              {contactName && <div className="font-medium text-zinc-900 dark:text-zinc-100">{contactName}</div>}
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              {contactName && <div className="font-medium text-neutral-900 dark:text-neutral-100">{contactName}</div>}
+              <div className="text-sm text-neutral-600 dark:text-neutral-400">
                 {formatPhoneNumber(phoneNumber) || "Unknown number"}
               </div>
             </div>

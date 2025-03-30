@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Rules for users collection
+    match /users/{userId} {
+      // Allow read if user owns the document
+      allow read: if isOwner(userId);
+      
+      // Allow create if user is authenticated and sets themselves as owner
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId
+        && request.resource.data.userId == userId;
+      
+      // Allow update if user owns the document
+      allow update: if isOwner(userId)
+        && request.resource.data.userId == userId;
+      
+      // Allow delete if user owns the document
+      allow delete: if isOwner(userId);
+
+      // Rules for user's conversations subcollection
+      match /conversations/{conversationId} {
+        allow read: if isOwner(userId);
+        allow create: if isAuthenticated() 
+          && request.auth.uid == userId;
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+
+        // Rules for messages subcollection within each conversation
+        match /messages/{messageId} {
+          allow read: if isOwner(userId);
+          allow create: if isAuthenticated() 
+            && request.auth.uid == userId;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+      }
+    }
+  }
+} 

@@ -6,7 +6,7 @@ import { type User, onAuthStateChanged } from "firebase/auth"
 import { auth, getUserData } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
 
-export type UserData = {
+type UserData = {
   userId: string
   firstName: string
   lastName: string
@@ -18,7 +18,6 @@ export type UserData = {
   smtpServer: string
   smtpEncryption: string
   twoFactorEnabled: boolean
-  phoneNumber?: string
   integrations: {
     googleCalendar: boolean
     outlookCalendar: boolean
@@ -27,27 +26,65 @@ export type UserData = {
     discord: boolean
     twitter: boolean
   }
-  assistant?: {
-    name?: string
-    systemPrompt?: string
-    temperature?: string
-  }
-  voice?: {
-    twilioSid?: string
-    twilioApiKey?: string
-    twilioPhoneNumber?: string
-    elevenLabsApiKey?: string
-    elevenLabsAgentId?: string
-  }
   onboarding?: {
-    voice?: {
-      twilioSid?: string
-      twilioApiKey?: string
-      twilioPhoneNumber?: string
-      elevenLabsApiKey?: string
-      elevenLabsAgentId?: string
+    emailSetupComplete: boolean
+    integrationsSetupComplete: boolean
+    voiceSetupComplete: boolean
+    onboardingComplete: boolean
+    integrations: {
+      googleCalendar: boolean
+      outlookCalendar: boolean
+    }
+    voice: {
+      twilioSid: string
+      twilioApiKey: string
+      twilioPhoneNumber: string
+      elevenLabsApiKey: string
+      elevenLabsAgentId: string
     }
   }
+  calendar?: {
+    defaultMeetingDuration: string
+    bufferTime: string
+    workingHours: {
+      start: string
+      end: string
+    }
+    workingDays: string[]
+    autoAcceptMeetings: boolean
+  }
+  handling?: {
+    autoReplyToEmails: boolean
+    autoScheduleMeetings: boolean
+    autoSuggestTimes: boolean
+    confirmBeforeSending: boolean
+    emailResponseStyle: string
+    emailResponseMode: string
+    allowCallForwarding: boolean
+    requireCallConfirmation: boolean
+    startupPage: string
+  }
+  voice?: {
+    twilioSid: string
+    twilioApiKey: string
+    twilioPhoneNumber: string
+    elevenLabsApiKey: string
+    elevenLabsAgentId: string
+  }
+  assistant?: {
+    name: string
+    systemPrompt: string
+    temperature: string
+    voice?: {
+      id: string
+      stability: string
+      clarity: string
+      enabled: boolean
+    }
+  }
+  phoneNumber?: string
+  emailVerified?: boolean
+  phoneVerified?: boolean
 }
 
 type AuthContextType = {

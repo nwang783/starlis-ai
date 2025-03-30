@@ -6,70 +6,77 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button"
 import { ChevronDownIcon, DownloadIcon, FilterIcon } from "lucide-react"
 
-// Mock data for usage table
-const mockData = [
+// Mock data for usage history
+const usageHistoryMock = [
   {
     id: "1",
-    date: "2024-03-14T15:32:45Z",
+    date: "2023-03-14T15:32:45Z",
+    service: "GPT-4",
     type: "llm",
-    description: "Chat conversation",
+    usage: 12500,
     unit: "tokens",
-    amount: 1250,
+    cost: 0.25,
   },
   {
     id: "2",
-    date: "2024-03-14T14:18:22Z",
+    date: "2023-03-14T14:18:22Z",
+    service: "ElevenLabs",
     type: "voice",
-    description: "Voice synthesis",
+    usage: 45,
     unit: "seconds",
-    amount: 45,
+    cost: 0.09,
   },
   {
     id: "3",
-    date: "2024-03-14T12:05:11Z",
+    date: "2023-03-14T12:05:11Z",
+    service: "GPT-4",
     type: "llm",
-    description: "Email composition",
+    usage: 8700,
     unit: "tokens",
-    amount: 850,
+    cost: 0.17,
   },
   {
     id: "4",
-    date: "2024-03-13T22:45:33Z",
-    type: "llm",
-    description: "Chat conversation",
-    unit: "tokens",
-    amount: 1100,
+    date: "2023-03-13T22:45:33Z",
+    service: "ElevenLabs",
+    type: "voice",
+    usage: 32,
+    unit: "seconds",
+    cost: 0.06,
   },
   {
     id: "5",
-    date: "2024-03-13T18:12:09Z",
-    type: "voice",
-    description: "Voice synthesis",
-    unit: "seconds",
-    amount: 30,
+    date: "2023-03-13T18:12:09Z",
+    service: "GPT-4",
+    type: "llm",
+    usage: 15200,
+    unit: "tokens",
+    cost: 0.3,
   },
   {
     id: "6",
-    date: "2024-03-13T16:34:27Z",
-    type: "llm",
-    description: "Email composition",
-    unit: "tokens",
-    amount: 920,
+    date: "2023-03-13T16:34:27Z",
+    service: "ElevenLabs",
+    type: "voice",
+    usage: 78,
+    unit: "seconds",
+    cost: 0.16,
   },
   {
     id: "7",
-    date: "2024-03-13T14:22:51Z",
+    date: "2023-03-13T14:22:51Z",
+    service: "GPT-4",
     type: "llm",
-    description: "Chat conversation",
+    usage: 9300,
     unit: "tokens",
-    amount: 750,
+    cost: 0.19,
   },
 ]
 
 export function UsageTable() {
   const [filter, setFilter] = useState<string | null>(null)
 
-  const filteredData = filter ? mockData.filter((item) => item.type === filter) : mockData
+  const filteredData = filter ? usageHistoryMock.filter((item) => item.type === filter) : usageHistoryMock
 
   return (
     <div className="space-y-4">
@@ -109,11 +116,11 @@ export function UsageTable() {
             {filteredData.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{new Date(item.date).toLocaleString()}</TableCell>
-                <TableCell>{item.type === "llm" ? "GPT-4" : "ElevenLabs"}</TableCell>
+                <TableCell>{item.service}</TableCell>
                 <TableCell>
-                  {item.amount.toLocaleString()} {item.unit}
+                  {item.usage.toLocaleString()} {item.unit}
                 </TableCell>
-                <TableCell className="text-right">${(item.amount * 0.0002).toFixed(2)}</TableCell>
+                <TableCell className="text-right">${item.cost.toFixed(2)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

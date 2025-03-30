@@ -78,15 +78,10 @@ export default function Sidebar() {
       </Button>
 
       {/* Sidebar */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col w-72 bg-white border-r shadow-sm transition-transform duration-300 ease-in-out",
-          isMobile && !isOpen && "-translate-x-full",
-        )}
-      >
-        <div className="p-4 border-b">
+      <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-white dark:bg-black">
+        <div className="flex h-14 items-center border-b px-4">
           <Link href="/dashboard" className="flex items-center">
-            <h1 className="text-xl font-bold">Starlis</h1>
+            <h1 className="text-xl font-bold text-foreground">Starlis</h1>
           </Link>
         </div>
 
@@ -97,8 +92,8 @@ export default function Sidebar() {
                 key={route.href}
                 href={route.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-all hover:text-gray-900 hover:bg-gray-100",
-                  pathname === route.href ? "bg-gray-100 text-gray-900" : "",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground hover:bg-muted",
+                  pathname === route.href ? "bg-muted text-foreground" : "",
                 )}
               >
                 <route.icon className={cn("h-5 w-5", route.color)} />
@@ -108,18 +103,25 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        <div className="p-4 border-t mt-auto">
-          <Card>
+        <div className="p-4 border-t border-border mt-auto">
+          <Card className="bg-muted border-border">
             <CardContent className="p-4 flex items-center gap-4">
-              <User className="h-8 w-8 rounded-full bg-gray-200 p-1" />
+              <User className="h-8 w-8 rounded-full bg-background p-1 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">User Account</p>
-                <p className="text-xs text-gray-500">Free Plan</p>
+                <p className="text-sm font-medium text-foreground">User Account</p>
+                <p className="text-xs text-muted-foreground">Free Plan</p>
               </div>
             </CardContent>
           </Card>
+          <Button
+            variant="outline"
+            className="w-full mt-4 border-black text-black hover:bg-black hover:text-white dark:border-0 dark:bg-neutral-800 dark:text-white dark:hover:bg-neutral-700"
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            New Chat
+          </Button>
         </div>
-      </div>
+      </aside>
     </>
   )
 }

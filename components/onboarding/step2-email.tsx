@@ -32,7 +32,7 @@ export function Step1EmailSetup({ starlisEmail, onNext }: { starlisEmail: string
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-2xl">Step 2: Set Up Email Forwarding</CardTitle>
-        <CardDescription>Configure your email client to forward messages to your Starlis AI assistant</CardDescription>
+        <CardDescription>Configure your email client to forward messages to your Starlis assistant</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="rounded-lg border bg-muted/50 p-6">
@@ -42,7 +42,7 @@ export function Step1EmailSetup({ starlisEmail, onNext }: { starlisEmail: string
               <h3 className="text-lg font-medium">Your Starlis Forwarding Email</h3>
             </div>
             <p className="text-sm text-muted-foreground">
-              This is your unique Starlis AI email address. Forward emails to this address to have them processed by your AI
+              This is your unique Starlis email address. Forward emails to this address to have them processed by your AI
               assistant.
             </p>
             <div className="flex items-center space-x-2">
@@ -59,7 +59,7 @@ export function Step1EmailSetup({ starlisEmail, onNext }: { starlisEmail: string
           <h3 className="text-lg font-medium">How to Set Up Email Forwarding</h3>
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              To get the most out of Starlis AI, you'll need to set up email forwarding in your personal email client:
+              To get the most out of Starlis, you'll need to set up email forwarding in your personal email client:
             </p>
             <ol className="ml-6 list-decimal text-sm text-muted-foreground space-y-2">
               <li>Log in to your email account (Gmail, Outlook, etc.)</li>

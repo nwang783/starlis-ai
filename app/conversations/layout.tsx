@@ -1,16 +1,19 @@
 import type React from "react"
-import type { Metadata } from "next"
-
-export const metadata: Metadata = {
-  title: "Conversations | Starlis",
-  description: "View and manage all your conversations",
-}
+import { SidebarProvider } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
 
 export default function ConversationsLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <div className="flex min-h-screen flex-col">{children}</div>
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex-1 w-full overflow-auto">{children}</div>
+      </div>
+    </SidebarProvider>
+  )
 }
 

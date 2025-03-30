@@ -1,8 +1,7 @@
 "use client"
 
-import { User, ChevronDown, LogOut, Moon, Sun } from "lucide-react"
+import { User, ChevronDown, LogOut, Moon, Sun, Settings } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -15,73 +14,23 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/auth-context"
-import { signOutUser, updateUserData } from "@/lib/firebase"
+import { signOutUser } from "@/lib/firebase"
 import { getGravatarUrl } from "@/lib/utils"
+import { useState, useEffect } from "react"
 import { Switch } from "@/components/ui/switch"
-import { useEffect, useState } from "react"
+import { useTheme } from "next-themes"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { userData } = useAuth()
   const router = useRouter()
-  const { setTheme, theme, resolvedTheme } = useTheme()
-  const [isDarkMode, setIsDarkMode] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme } = useTheme()
 
-  // Update the switch state when the theme changes
   useEffect(() => {
-    // Set dark mode as default
-    if (typeof window !== "undefined") {
-      // First check if we have a user preference in Firestore
-      if (userData && userData.themePreference !== undefined) {
-        const isDark = userData.themePreference === "dark"
-        setIsDarkMode(isDark)
-        setTheme(isDark ? "dark" : "light")
-
-        // Update the HTML class
-        const html = document.documentElement
-        if (isDark) {
-          html.classList.add("dark")
-        } else {
-          html.classList.remove("dark")
-        }
-      } else {
-        // Default to dark mode if no preference is saved
-        setIsDarkMode(true)
-        setTheme("dark")
-        document.documentElement.classList.add("dark")
-
-        // Save the default preference to Firestore if we have a user
-        if (userData && userData.userId) {
-          updateUserData(userData.userId, { themePreference: "dark" }).catch((error) =>
-            console.error("Error saving theme preference:", error),
-          )
-        }
-      }
-    }
-  }, [userData, setTheme])
-
-  const toggleDarkMode = (checked: boolean) => {
-    setIsDarkMode(checked)
-    setTheme(checked ? "dark" : "light")
-
-    // Update the HTML class
-    if (typeof window !== "undefined") {
-      const html = document.documentElement
-      if (checked) {
-        html.classList.add("dark")
-      } else {
-        html.classList.remove("dark")
-      }
-    }
-
-    // Save the preference to Firestore
-    if (userData && userData.userId) {
-      updateUserData(userData.userId, { themePreference: checked ? "dark" : "light" }).catch((error) =>
-        console.error("Error saving theme preference:", error),
-      )
-    }
-  }
+    setMounted(true)
+  }, [])
 
   const handleSignOut = async () => {
     try {
@@ -92,7 +41,7 @@ export function NavUser() {
     }
   }
 
-  if (!userData) {
+  if (!userData || !mounted) {
     return null
   }
 
@@ -156,21 +105,24 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault()
-                  toggleDarkMode(!isDarkMode)
-                }}
-                className="flex cursor-default justify-between"
-              >
+            <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+              <div className="flex items-center justify-between w-full">
+                <span>Theme</span>
                 <div className="flex items-center gap-2">
-                  {isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                  <span className="text-sm">Dark Mode</span>
+                  {theme === "dark" ? (
+                    <Moon className="h-4 w-4" />
+                  ) : (
+                    <Sun className="h-4 w-4" />
+                  )}
+                  <Switch
+                    checked={theme === "dark"}
+                    onCheckedChange={(checked) => {
+                      setTheme(checked ? "dark" : "light")
+                    }}
+                  />
                 </div>
-                <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} onClick={(e) => e.stopPropagation()} />
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+              </div>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={handleSignOut}>

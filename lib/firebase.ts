@@ -43,6 +43,7 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
 const app = initializeApp(firebaseConfig)
@@ -76,7 +77,7 @@ export const signUpWithEmail = async (
     const user = userCredential.user
 
     // Generate a Starlis forwarding email
-    const starlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${process.env.NEXT_PUBLIC_EMAIL_PREFIX || 'starlis'}.${generateRandomString(5)}@${process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'mail.starlis.com'}`
+    const starlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.starlis.${generateRandomString(5)}@mail.starlis.com`
 
     // Create user profile in Firestore
     await setDoc(doc(db, "users", user.uid), {
@@ -267,7 +268,7 @@ export const updateIntegrationSettings = async (userId: string, integrations: an
 
 export const regenerateStarlisEmail = async (userId: string, firstName: string, lastName: string) => {
   try {
-    const newStarlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${process.env.NEXT_PUBLIC_EMAIL_PREFIX || 'starlis'}.${generateRandomString(5)}@${process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'mail.starlis.com'}`
+    const newStarlisEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.starlis.${generateRandomString(5)}@mail.starlis.com`
     const docRef = doc(db, "users", userId)
     await updateDoc(docRef, {
       starlisForwardingEmail: newStarlisEmail,

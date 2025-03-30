@@ -2,6 +2,7 @@ import { OpenAI } from "openai"
 import { NextResponse } from "next/server"
 import { extractPhoneNumber } from "@/lib/utils"
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
+import { processMessageWithClaude } from "@/lib/server/anthropic-service"
 
 // Initialize OpenAI client (server-side only)
 const openai = new OpenAI({
@@ -10,7 +11,7 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { userId, content, messages } = await req.json()
+    const { userId, content, messages, model = "gpt-4" } = await req.json()
 
     // Check if the message contains a call intent
     const callIntent =
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // If no call intent or no valid phone number found, proceed with normal OpenAI chat
+    // If no call intent or no valid phone number found, proceed with AI chat
     const allMessages: ChatCompletionMessageParam[] = messages.map((msg: any) => ({
       role: msg.role as "user" | "assistant" | "system",
       content: msg.content,
@@ -61,16 +62,24 @@ export async function POST(req: Request) {
       content,
     })
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: allMessages,
-      temperature: 0.7,
-    })
+    let aiResponse: string
+
+    // Handle different AI models
+    if (model.startsWith("claude")) {
+      aiResponse = await processMessageWithClaude(allMessages, model as "claude-3-sonnet" | "claude-3-haiku")
+    } else {
+      const completion = await openai.chat.completions.create({
+        model: model,
+        messages: allMessages,
+        temperature: 0.7,
+      })
+      aiResponse = completion.choices[0].message.content || ""
+    }
 
     return NextResponse.json({
       message: {
         role: "assistant",
-        content: completion.choices[0].message.content || "",
+        content: aiResponse,
         timestamp: new Date().toISOString(),
       },
     })

@@ -64,7 +64,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ],
     projects: [
       {
-        name: "Starlis AI",
+        name: "How to implement authentication in Next.js?",
         url: "/assistant?chat=1",
         id: "1",
       },
@@ -78,12 +78,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "/assistant?chat=3",
         id: "3",
       },
+      {
+        name: "Best practices for API design",
+        url: "/assistant?chat=4",
+        id: "4",
+      },
+      {
+        name: "Optimizing React performance",
+        url: "/assistant?chat=5",
+        id: "5",
+      },
+      {
+        name: "Setting up CI/CD pipeline",
+        url: "/assistant?chat=6",
+        id: "6",
+      },
     ],
   }
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+    <Sidebar collapsible="icon" className="bg-background dark:bg-black shadow-lg transition-all duration-200" {...props}>
+      <SidebarHeader className="mt-12 pb-16">
         <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>

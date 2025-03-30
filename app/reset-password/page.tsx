@@ -150,7 +150,7 @@ export default function ResetPasswordPage() {
         <div className="flex flex-col space-y-2 text-center">
           <div className="flex justify-center mb-4">
             <div className="size-12 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">STRLS</span>
+              <span className="text-primary-foreground font-bold text-lg">STARLIS</span>
             </div>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Reset Your Password</h1>

@@ -4,39 +4,39 @@ import { useEffect, useState } from "react"
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 // Mock data for LLM token usage
-const mockData = [
-  { date: "2024-03-01", tokens: 125000 },
-  { date: "2024-03-02", tokens: 142000 },
-  { date: "2024-03-03", tokens: 98000 },
-  { date: "2024-03-04", tokens: 134000 },
-  { date: "2024-03-05", tokens: 187000 },
-  { date: "2024-03-06", tokens: 143000 },
-  { date: "2024-03-07", tokens: 165000 },
-  { date: "2024-03-08", tokens: 132000 },
-  { date: "2024-03-09", tokens: 176000 },
-  { date: "2024-03-10", tokens: 145000 },
-  { date: "2024-03-11", tokens: 156000 },
-  { date: "2024-03-12", tokens: 189000 },
-  { date: "2024-03-13", tokens: 167000 },
-  { date: "2024-03-14", tokens: 154000 },
+const llmMockData = [
+  { date: "2023-03-01", tokens: 125000 },
+  { date: "2023-03-02", tokens: 142000 },
+  { date: "2023-03-03", tokens: 98000 },
+  { date: "2023-03-04", tokens: 134000 },
+  { date: "2023-03-05", tokens: 187000 },
+  { date: "2023-03-06", tokens: 143000 },
+  { date: "2023-03-07", tokens: 165000 },
+  { date: "2023-03-08", tokens: 132000 },
+  { date: "2023-03-09", tokens: 176000 },
+  { date: "2023-03-10", tokens: 145000 },
+  { date: "2023-03-11", tokens: 156000 },
+  { date: "2023-03-12", tokens: 189000 },
+  { date: "2023-03-13", tokens: 167000 },
+  { date: "2023-03-14", tokens: 154000 },
 ]
 
 // Mock data for voice synthesis usage
 const voiceMockData = [
-  { date: "2024-03-01", seconds: 320 },
-  { date: "2024-03-02", seconds: 280 },
-  { date: "2024-03-03", seconds: 350 },
-  { date: "2024-03-04", seconds: 290 },
-  { date: "2024-03-05", seconds: 410 },
-  { date: "2024-03-06", seconds: 380 },
-  { date: "2024-03-07", seconds: 320 },
-  { date: "2024-03-08", seconds: 290 },
-  { date: "2024-03-09", seconds: 340 },
-  { date: "2024-03-10", seconds: 390 },
-  { date: "2024-03-11", seconds: 420 },
-  { date: "2024-03-12", seconds: 380 },
-  { date: "2024-03-13", seconds: 350 },
-  { date: "2024-03-14", seconds: 310 },
+  { date: "2023-03-01", seconds: 320 },
+  { date: "2023-03-02", seconds: 280 },
+  { date: "2023-03-03", seconds: 350 },
+  { date: "2023-03-04", seconds: 290 },
+  { date: "2023-03-05", seconds: 410 },
+  { date: "2023-03-06", seconds: 380 },
+  { date: "2023-03-07", seconds: 320 },
+  { date: "2023-03-08", seconds: 290 },
+  { date: "2023-03-09", seconds: 340 },
+  { date: "2023-03-10", seconds: 390 },
+  { date: "2023-03-11", seconds: 420 },
+  { date: "2023-03-12", seconds: 380 },
+  { date: "2023-03-13", seconds: 350 },
+  { date: "2023-03-14", seconds: 310 },
 ]
 
 interface UsageChartProps {
@@ -53,7 +53,7 @@ export function UsageChart({ type, timeRange }: UsageChartProps) {
     setLoading(true)
     setTimeout(() => {
       if (type === "llm") {
-        setData(mockData.slice(-getTimeRangeDays(timeRange)))
+        setData(llmMockData.slice(-getTimeRangeDays(timeRange)))
       } else {
         setData(voiceMockData.slice(-getTimeRangeDays(timeRange)))
       }

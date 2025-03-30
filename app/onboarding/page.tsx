@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Step1EmailSetup } from "@/components/onboarding/step2-email"
-import { Step2Integrations } from "@/components/onboarding/step3-integrations"
+import { Step3ExternalIntegrations } from "@/components/onboarding/step3-external-integrations"
 import { Step3VoiceSetup } from "@/components/onboarding/step4-voice"
 import { Step4Completion } from "@/components/onboarding/step5-completion"
 import { OnboardingProgress } from "@/components/onboarding/onboarding-progress"
@@ -210,7 +210,7 @@ export default function OnboardingPage() {
                 )}
 
                 {currentStep === 3 && (
-                  <Step2Integrations
+                  <Step3ExternalIntegrations
                     integrations={onboardingData.integrations}
                     onNext={(data) =>
                       handleNext({

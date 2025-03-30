@@ -6,13 +6,25 @@ import { AppSidebar } from "../../components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Mail, MessageSquare, Phone, PhoneCall, PhoneIncoming, PhoneOutgoing, User, Bell } from "lucide-react"
+import {
+  Calendar,
+  Mail,
+  MessageSquare,
+  Phone,
+  PhoneCall,
+  PhoneIncoming,
+  PhoneOutgoing,
+  User,
+  Bell,
+  Sun,
+} from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
 import { createNewChat } from "@/lib/firebase"
 import { getUpcomingMeetings, type Meeting } from "@/lib/placeholders"
+import { TimeBasedArt } from "@/components/time-based-art"
 
 // Sample call history data - in a real app, this would come from your backend
 const callHistory = [
@@ -90,9 +102,9 @@ export default function DashboardPage() {
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return "Good Morning"
-    if (hour < 18) return "Good Afternoon"
-    return "Good Evening"
+    if (hour < 12) return "Good morning"
+    if (hour < 18) return "Good afternoon"
+    return "Good evening"
   }
 
   useEffect(() => {
@@ -223,13 +235,18 @@ export default function DashboardPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <div className="flex flex-1 flex-col gap-6 p-6">
+        <div className="absolute inset-0 -z-1">
+          <TimeBasedArt />
+        </div>
+        <div className="flex flex-1 flex-col gap-6 p-6 pt-[12rem] relative z-10">
           {/* Greeting Header */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">
-              {getGreeting()}
-              {userData ? `, ${userData.firstName}` : ""}
-            </h1>
+            <div className="flex items-center gap-3">
+              <Sun className="h-8 w-8 text-orange-400" />
+              <h1 className="text-4xl font-semibold text-black dark:text-white">
+                {getGreeting()}, {userData?.firstName || "there"}
+              </h1>
+            </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => router.push("/assistant")}>
                 <MessageSquare className="mr-2 h-4 w-4" />

@@ -1,4 +1,4 @@
-// Client-side service for interacting with the AI API
+/// Client-side service for interacting with the AI API
 // This file does NOT directly use the OpenAI client
 
 import { extractPhoneNumber } from "./utils"
@@ -21,6 +21,7 @@ export async function processAIMessage(
   userId: string,
   content: string,
   messages: Message[],
+  model: string = "gpt-4"
 ): Promise<{ message: Message; action?: Action }> {
   console.log("Processing AI message for user:", userId)
 
@@ -97,6 +98,7 @@ export async function processAIMessage(
         userId,
         content,
         messages: validMessages,
+        model,
       }),
     })
 
@@ -111,10 +113,10 @@ export async function processAIMessage(
   } catch (error) {
     console.error("Error with main API endpoint:", error)
 
-    // Try the alternative API endpoint
+    // Try the mock API endpoint as a fallback
     try {
-      console.log("Trying alternative API endpoint")
-      const altResponse = await fetch("/api/chat-alt", {
+      console.log("Trying mock API endpoint")
+      const mockResponse = await fetch("/api/mock-chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -123,63 +125,37 @@ export async function processAIMessage(
           userId,
           content,
           messages: validMessages,
+          model,
         }),
       })
 
-      if (!altResponse.ok) {
-        console.error("Alt API response not OK:", altResponse.status, await altResponse.text())
-        throw new Error(`Alt API response not OK: ${altResponse.status}`)
+      if (!mockResponse.ok) {
+        throw new Error(`Mock API response not OK: ${mockResponse.status}`)
       }
 
-      const altData = await altResponse.json()
-      console.log("Alternative API response received")
-      return altData
-    } catch (altError) {
-      console.error("Error with alternative API endpoint:", altError)
+      const mockData = await mockResponse.json()
+      console.log("Mock API response received")
+      return mockData
+    } catch (mockError) {
+      console.error("All API endpoints failed:", mockError)
 
-      // Try the mock API endpoint as a last resort
-      try {
-        console.log("Trying mock API endpoint")
-        const mockResponse = await fetch("/api/mock-chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId,
-            content,
-            messages: validMessages,
-          }),
-        })
-
-        if (!mockResponse.ok) {
-          throw new Error(`Mock API response not OK: ${mockResponse.status}`)
-        }
-
-        const mockData = await mockResponse.json()
-        console.log("Mock API response received")
-        return mockData
-      } catch (mockError) {
-        console.error("All API endpoints failed:", mockError)
-
-        // Return a fallback response
-        return {
-          message: {
-            role: "assistant",
-            content: getFallbackResponse(content),
-            timestamp: new Date().toISOString(),
-          },
-        }
+      // Return a fallback response
+      return {
+        message: {
+          role: "assistant",
+          content: getFallbackResponse(content),
+          timestamp: new Date().toISOString(),
+        },
       }
     }
   }
 }
 
 // Generate AI response based on prompt
-export async function generateAIResponse(prompt: string): Promise<any> {
+export async function generateAIResponse(prompt: string, model: string = "gpt-4"): Promise<any> {
   try {
     // Use the processAIMessage function with a default user ID
-    return await processAIMessage("default-user", prompt, [])
+    return await processAIMessage("default-user", prompt, [], model)
   } catch (error) {
     console.error("Error generating AI response:", error)
     return {
