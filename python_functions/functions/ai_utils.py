@@ -31,11 +31,11 @@ def process_with_ai(secretary_info, from_address, subject, body, task_id):
     """
     try:
         # Extract relevant info from secretary_info
-        secretary_name = secretary_info.get('name', 'AI Secretary')
+        secretary_name = secretary_info.get('name', 'Starla')
         personality = secretary_info.get('personality', 'helpful and professional')
         custom_instructions = secretary_info.get('custom_instructions', 'None')
         user_id = secretary_info.get('user_id', '')
-        user_full_name = secretary_info.get('email', '').split("-")[0]
+        user_full_name = secretary_info.get('user_full_name', '')
         user_email = secretary_info.get('user_email', '')
         
         # Initialize Claude client
@@ -43,7 +43,7 @@ def process_with_ai(secretary_info, from_address, subject, body, task_id):
         
         # Format the email content including conversation history
         email_content = f"""
-        You are {secretary_name}, an AI secretary with a {personality} personality.
+        You are {secretary_name}, an AI secretary with a {personality} personality. Your name is {secretary_name}.
         You work for {user_full_name} who's email address is: {user_email}. 
         Custom instructions: {custom_instructions}
         
