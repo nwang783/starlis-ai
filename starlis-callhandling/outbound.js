@@ -178,6 +178,40 @@ fastify.post('/end-call', async (request, reply) => {
   }
 });
 
+// Route to check the status of a call
+fastify.get('/call-status', async (request, reply) => {
+  const { callSid, user_id } = request.query;
+
+  if (!callSid || !user_id) {
+    return reply.code(400).send({ 
+      error: 'Call SID and User ID are required' 
+    });
+  }
+
+  try {
+    // Fetch user credentials from Firestore
+    const { twilioClient } = await getUserCredentials(user_id);
+
+    // Fetch call details from Twilio
+    const callDetails = await twilioClient.calls(callSid).fetch();
+
+    reply.send({
+      success: true,
+      callSid: callDetails.sid,
+      status: callDetails.status, // e.g., queued, ringing, in-progress, completed, etc.
+      startTime: callDetails.startTime,
+      endTime: callDetails.endTime,
+      duration: callDetails.duration,
+    });
+  } catch (error) {
+    console.error('Error fetching call status:', error);
+    reply.code(500).send({
+      success: false,
+      error: error.message || 'Failed to fetch call status',
+    });
+  }
+});
+
 // WebSocket route for handling media streams
 fastify.register(async (fastifyInstance) => {
   fastifyInstance.get('/outbound-media-stream', { websocket: true }, (ws, req) => {
@@ -396,6 +430,83 @@ fastify.register(async (fastifyInstance) => {
       console.log('[Twilio] Client disconnected');
       if (elevenLabsWs?.readyState === WebSocket.OPEN) {
         elevenLabsWs.close();
+      }
+    });
+  });
+});
+
+// WebSocket route for front-end streaming
+fastify.register(async (fastifyInstance) => {
+  fastifyInstance.get('/frontend-stream', { websocket: true }, (ws, req) => {
+    console.info('[Server] Front-end WebSocket connected');
+
+    // Extract query parameters
+    const { callSid, user_id } = req.query;
+
+    if (!callSid || !user_id) {
+      console.error('[Front-end] Missing callSid or user_id in WebSocket request');
+      ws.close(1008, 'Missing callSid or user_id');
+      return;
+    }
+
+    console.log(`[Front-end] WebSocket connected with callSid: ${callSid}, user_id: ${user_id}`);
+
+    // Store the WebSocket connection for streaming
+    let twilioWs = null;
+
+    // Handle messages from the front-end
+    ws.on('message', (message) => {
+      try {
+        const msg = JSON.parse(message);
+        console.log('[Front-end] Received message:', msg);
+
+        if (msg.event === 'connect-twilio') {
+          // Connect to Twilio media stream WebSocket
+          twilioWs = new WebSocket(`wss://${req.headers.host}/outbound-media-stream?callSid=${callSid}&user_id=${user_id}`);
+
+          twilioWs.on('open', () => {
+            console.log('[Twilio] Connected to Twilio media stream');
+          });
+
+          twilioWs.on('message', (data) => {
+            const twilioMessage = JSON.parse(data);
+
+            // Forward Twilio media and transcription events to the front-end
+            if (twilioMessage.event === 'media') {
+              ws.send(
+                JSON.stringify({
+                  event: 'audio',
+                  payload: twilioMessage.media.payload,
+                })
+              );
+            } else if (twilioMessage.event === 'transcription') {
+              ws.send(
+                JSON.stringify({
+                  event: 'transcription',
+                  text: twilioMessage.transcription.text,
+                })
+              );
+            }
+          });
+
+          twilioWs.on('close', () => {
+            console.log('[Twilio] Disconnected from Twilio media stream');
+          });
+
+          twilioWs.on('error', (error) => {
+            console.error('[Twilio] WebSocket error:', error);
+          });
+        }
+      } catch (error) {
+        console.error('[Front-end] Error processing message:', error);
+      }
+    });
+
+    // Handle WebSocket closure
+    ws.on('close', () => {
+      console.log('[Front-end] WebSocket disconnected');
+      if (twilioWs?.readyState === WebSocket.OPEN) {
+        twilioWs.close();
       }
     });
   });
