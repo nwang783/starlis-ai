@@ -107,24 +107,6 @@ export function NavPlatform({
             </SidebarMenuItem>
           ),
         )}
-        {/* Add Sandbox option after the mapped items */}
-        <SidebarMenuItem>
-          <SidebarMenuButton 
-            asChild 
-            tooltip="Sandbox"
-            className={cn(
-              "group relative w-full transition-colors duration-200 ease-in-out",
-              "hover:bg-accent/50",
-              "dark:hover:bg-accent/50",
-              "z-50"
-            )}
-          >
-            <a href="/sandbox">
-              <Zap />
-              <span>Sandbox</span>
-            </a>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   )
