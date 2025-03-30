@@ -119,7 +119,7 @@ export function ChatHeader({ conversationId, initialTitle, onDelete, onRename }:
         variant="ghost"
         size="sm"
         className="gap-2"
-        onClick={() => router.push("/assistant")}
+        onClick={() => router.push("/conversations")}
       >
         <List className="h-4 w-4" />
         All Conversations

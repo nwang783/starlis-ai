@@ -81,6 +81,12 @@ export default function Sidebar() {
       <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-white dark:bg-black">
         <div className="flex h-14 items-center border-b px-4">
           <Link href="/dashboard" className="flex items-center">
+            <img
+              src="/starlis_cutout.svg"
+              alt="Starlis Logo"
+              className="h-8 w-8 mr-2"
+              style={{ filter: 'invert(1)' }}
+            />
             <h1 className="text-xl font-bold text-foreground">Starlis</h1>
           </Link>
         </div>

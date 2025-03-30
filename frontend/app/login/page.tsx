@@ -127,7 +127,7 @@ export default function LoginPage() {
         <div className="flex flex-col space-y-2 text-center">
           <div className="flex items-center justify-center mb-4 gap-2">
             <img
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/circle-with-irregular-shape-inside-svgrepo-com-krMECzHbCO4kkkJCa2jNlslczUaIzc.svg"
+              src="/starlis_cutout.svg"
               alt="Starlis Logo"
               className="h-10 dark:brightness-0 dark:invert"
             />
