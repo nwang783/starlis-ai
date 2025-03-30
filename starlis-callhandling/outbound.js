@@ -31,17 +31,27 @@ fastify.register(fastifyFormBody);
 fastify.register(fastifyWs);
 fastify.register(fastifyCors, {
   origin: (origin, cb) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin
     if (!origin) return cb(null, true);
     
     // Allow localhost during development
-    if (origin === 'http://localhost:3000') return cb(null, true);
+    if (origin === 'http://localhost:3000' || 
+        origin === 'http://localhost:5173' || 
+        origin === 'https://kzmqjg22ogdq7cd0q4bw.lite.vusercontent.net') {
+      return cb(null, true);
+    }
     
     // Check if the origin is in the allowed list
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-    if (allowedOrigins.includes(origin)) {
+    const ALLOWED_ORIGINS = [
+      'http://localhost:3000',
+      'http://localhost:5173', // Vite default port
+      'https://kzmqjg22ogdq7cd0q4bw.lite.vusercontent.net', // Vite preview origin
+      ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
+    ];
+    if (ALLOWED_ORIGINS.includes(origin)) {
       cb(null, true);
     } else {
+      console.error('Unauthorized origin:', origin);
       cb(new Error('Not allowed by CORS'), false);
     }
   },
@@ -55,7 +65,12 @@ fastify.register(fastifyCors, {
 
 const PORT = process.env.PORT || 8000;
 const JWT_SECRET = process.env.JWT_SECRET;
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || [];
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:5173', // Vite default port
+  'https://kzmqjg22ogdq7cd0q4bw.lite.vusercontent.net', // Vite preview origin
+  ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
+];
 
 // Authentication middleware
 const authenticateRequest = async (request, reply) => {
