@@ -1,208 +1,246 @@
-# Starlis Call Handling System
+# Starlis Call Handling API
 
-A system for handling outbound calls with real-time audio streaming and transcription.
+This service provides an API for making outbound calls using Twilio and ElevenLabs for voice AI integration.
 
-## API Documentation
-
-### Endpoints
-
-#### 1. Initiate Outbound Call
-```bash
-POST https://voip.starlis.tech/outbound-call
-Content-Type: application/json
-
-{
-  "user_id": "user123",
-  "number": "+1234567890",
-  "prompt": "You are a helpful customer service agent",
-  "first_message": "Hello! How can I help you today?"
-}
+## Base URL
+```
+https://voip.starlis.tech
 ```
 
-Response:
+## Authentication
+All endpoints require user authentication through Firebase. The user ID must be provided in the requests.
+
+## API Endpoints
+
+### Health Check
+```bash
+GET /
+```
+Checks if the server is running.
+
+**Response:**
 ```json
 {
-  "success": true,
-  "message": "Call initiated",
-  "callSid": "CA123456789"
+    "message": "Server is running"
 }
 ```
 
-#### 2. End Call
+### Make Outbound Call
 ```bash
-POST https://voip.starlis.tech/end-call
-Content-Type: application/json
-
-{
-  "callSid": "CA123456789",
-  "user_id": "user123"
-}
+POST /outbound-call
 ```
 
-Response:
+Initiates an outbound call to a specified phone number.
+
+**Request Body:**
 ```json
 {
-  "success": true,
-  "message": "Call ended successfully"
+    "user_id": "string",      // Required: Firebase user ID
+    "number": "string",       // Required: Phone number to call (E.164 format)
+    "prompt": "string",       // Optional: Initial prompt for the AI
+    "first_message": "string" // Optional: First message to say
 }
 ```
 
-#### 3. Check Call Status
+**Curl Command:**
 ```bash
-GET https://voip.starlis.tech/call-status?callSid=CA123456789&user_id=user123
+curl -X POST https://voip.starlis.tech/outbound-call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "your-user-id",
+    "number": "+1234567890",
+    "prompt": "You are a helpful assistant",
+    "first_message": "Hello, this is an automated call"
+  }'
 ```
 
-Response:
+**Response:**
 ```json
 {
-  "success": true,
-  "callSid": "CA123456789",
-  "status": "in-progress",
-  "startTime": "2024-03-20T10:00:00Z",
-  "endTime": null,
-  "duration": 120
+    "success": true,
+    "message": "Call initiated",
+    "callSid": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 }
 ```
 
-### WebSocket Endpoints
+### End Call
+```bash
+POST /end-call
+```
 
-#### 1. Frontend Media Stream
+Ends an ongoing call.
+
+**Request Body:**
+```json
+{
+    "callSid": "string",  // Required: Twilio Call SID
+    "user_id": "string"   // Required: Firebase user ID
+}
+```
+
+**Curl Command:**
+```bash
+curl -X POST https://voip.starlis.tech/end-call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "callSid": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "user_id": "your-user-id"
+  }'
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Call ended successfully"
+}
+```
+
+### Check Call Status
+```bash
+GET /call-status
+```
+
+Retrieves the current status of a call.
+
+**Query Parameters:**
+- `callSid`: string (Required) - Twilio Call SID
+- `user_id`: string (Required) - Firebase user ID
+
+**Curl Command:**
+```bash
+curl "https://voip.starlis.tech/call-status?callSid=CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&user_id=your-user-id"
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "callSid": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "status": "in-progress",
+    "startTime": "2024-03-21T10:00:00Z",
+    "endTime": null,
+    "duration": "120"
+}
+```
+
+## WebSocket Streaming
+
+### Media Stream Connection
+```bash
+WebSocket: wss://voip.starlis.tech/outbound-media-stream
+```
+
+The WebSocket endpoint handles real-time media streaming between Twilio and ElevenLabs.
+
+**Query Parameters:**
+- `user_id`: string (Required) - Firebase user ID
+- `prompt`: string (Optional) - Initial prompt for the AI
+- `first_message`: string (Optional) - First message to say
+
+**Example WebSocket Connection:**
 ```javascript
-// Connect to WebSocket
-const ws = new WebSocket(`wss://voip.starlis.tech/frontend-stream?callSid=${callSid}&user_id=${userId}`);
+const ws = new WebSocket('wss://voip.starlis.tech/outbound-media-stream?user_id=your-user-id&prompt=Your prompt&first_message=Your first message');
 
-// Send connect-twilio event
-ws.send(JSON.stringify({
-  event: 'connect-twilio',
-  callSid: callSid,
-  user_id: userId
-}));
+ws.onopen = () => {
+    console.log('Connected to media stream');
+};
 
-// Handle incoming messages
 ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  
-  switch (data.event) {
-    case 'audio':
-      // Handle audio data
-      console.log('Received audio data');
-      break;
-    case 'transcription':
-      // Handle transcription
-      console.log('Received transcription:', data.text);
-      break;
-  }
+    console.log('Received message:', event.data);
+};
+
+ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+    console.log('Disconnected from media stream');
 };
 ```
 
-### Example Usage
+## Error Handling
 
-#### 1. Making a Call
-```javascript
-// 1. Initiate call
-const callResponse = await fetch('https://voip.starlis.tech/outbound-call', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    user_id: 'user123',
-    number: '+1234567890',
-    prompt: 'You are a helpful customer service agent',
-    first_message: 'Hello! How can I help you today?'
-  })
-});
-const { callSid } = await callResponse.json();
+### Common Error Responses
 
-// 2. Connect to WebSocket for audio streaming
-const ws = new WebSocket(`wss://voip.starlis.tech/frontend-stream?callSid=${callSid}&user_id=user123`);
-
-// 3. Handle WebSocket events
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.event === 'audio') {
-    // Handle audio playback
-  } else if (data.event === 'transcription') {
-    // Update UI with transcription
-  }
-};
-
-// 4. End call when needed
-const endCallResponse = await fetch('https://voip.starlis.tech/end-call', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    callSid,
-    user_id: 'user123'
-  })
-});
-```
-
-### Error Handling
-
-All endpoints may return the following error responses:
-
+**400 Bad Request:**
 ```json
-// 400 Bad Request
 {
-  "error": "User ID and phone number are required"
-}
-
-// 500 Internal Server Error
-{
-  "success": false,
-  "error": "Failed to initiate call"
+    "error": "User ID and phone number are required"
 }
 ```
 
-### WebSocket Events
+**500 Internal Server Error:**
+```json
+{
+    "success": false,
+    "error": "Error message description"
+}
+```
 
-#### Frontend to Server
-- `connect-twilio`: Connect to Twilio media stream
-  ```json
-  {
-    "event": "connect-twilio",
-    "callSid": "CA123456789",
-    "user_id": "user123"
-  }
-  ```
+## Prerequisites
 
-#### Server to Frontend
-- `audio`: Audio data from the call
-  ```json
-  {
-    "event": "audio",
-    "payload": "base64_encoded_audio_data"
-  }
-  ```
-- `transcription`: Transcription of the conversation
-  ```json
-  {
-    "event": "transcription",
-    "text": "Transcribed text"
-  }
-  ```
+Before using the API, ensure you have:
 
-### Rate Limiting
+1. **Firebase Setup**
+   - A Firebase project with user authentication
+   - Service account credentials
 
-- Call initiation: 5 requests per minute
-- WebSocket connections: 3 concurrent connections per user
+2. **Twilio Account**
+   - Account SID
+   - Auth Token
+   - Phone Number
 
-### Best Practices
+3. **ElevenLabs Account**
+   - Agent ID
+   - API Key
 
-1. **Error Handling**:
-   - Implement proper error handling for all API calls
-   - Handle WebSocket disconnections gracefully
-   - Implement reconnection logic for WebSocket connections
+## Environment Variables
 
-2. **WebSocket Usage**:
-   - Clean up WebSocket connections when done
-   - Handle connection errors appropriately
-   - Implement heartbeat mechanism for long connections
+Required environment variables in `.env`:
+```env
+ELEVENLABS_AGENT_ID=your-elevenlabs-agent-id
+ELEVENLABS_API_KEY=your-elevenlabs-api-key
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=your-twilio-phone-number
+FIREBASE_SERVICE_ACCOUNT_KEY=your-firebase-service-account-json
+```
 
-3. **Audio Handling**:
-   - Buffer audio data appropriately
-   - Handle audio format conversion if needed
-   - Implement proper audio playback controls
+## Important Notes
+
+1. Phone numbers must be in E.164 format (e.g., +1234567890)
+2. The WebSocket connection is used for real-time media streaming
+3. Call status updates are available through the `/call-status` endpoint
+4. All HTTP endpoints use HTTPS
+5. WebSocket connections use WSS (secure WebSocket)
+6. All responses are in JSON format except for TwiML responses which are in XML
+
+## Example Usage Flow
+
+1. **Initiate a Call:**
+```bash
+curl -X POST https://voip.starlis.tech/outbound-call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "your-user-id",
+    "number": "+1234567890",
+    "prompt": "You are a helpful assistant",
+    "first_message": "Hello, this is an automated call"
+  }'
+```
+
+2. **Check Call Status:**
+```bash
+curl "https://voip.starlis.tech/call-status?callSid=CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&user_id=your-user-id"
+```
+
+3. **End the Call:**
+```bash
+curl -X POST https://voip.starlis.tech/end-call \
+  -H "Content-Type: application/json" \
+  -d '{
+    "callSid": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "user_id": "your-user-id"
+  }'
+```
