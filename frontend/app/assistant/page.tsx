@@ -264,6 +264,16 @@ export default function AssistantPage() {
         chatId = await createConversation(user.uid, conversationName)
         setCurrentChatId(chatId)
         setConversationTitle(conversationName)
+        
+        // Update recent conversations list
+        const updatedConversations = await getUserConversations(user.uid)
+        setRecentConversations(updatedConversations)
+        
+        // Dispatch a custom event to notify the sidebar
+        const event = new CustomEvent('conversationCreated', {
+          detail: { conversationId: chatId, name: conversationName }
+        })
+        window.dispatchEvent(event)
       }
 
       // Save user message to Firestore
@@ -593,7 +603,7 @@ export default function AssistantPage() {
                       <h1 className="text-4xl font-semibold text-black dark:text-white">
                         {getGreeting()}, {userData?.firstName || "there"}
                       </h1>
-          </div>
+                    </div>
 
                     <Card className="border-border bg-card/50 p-4">
                       <div className="space-y-4">
@@ -629,8 +639,8 @@ export default function AssistantPage() {
                               disabled={!input.trim() || isLoading}
                             >
                               <Send className="h-5 w-5" />
-            </Button>
-          </div>
+                            </Button>
+                          </div>
 
                           <div className="flex items-center gap-2">
                             <TooltipProvider delayDuration={0}>
@@ -674,7 +684,7 @@ export default function AssistantPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                          className={cn(
+                                      className={cn(
                                         "h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5 transition-colors",
                                         isReasonEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
                                       )}
@@ -810,12 +820,12 @@ export default function AssistantPage() {
                         </div>
                       )}
 
-                  {isLoading && (
+                      {isLoading && (
                         <div className="flex gap-3">
                           <Avatar className="h-8 w-8 [&>img]:invert-0 dark:[&>img]:invert">
                             <AvatarImage src="/starlis_logo.svg" alt="Starlis Assistant" />
                             <AvatarFallback>VX</AvatarFallback>
-                      </Avatar>
+                          </Avatar>
                           <div className="rounded-2xl bg-muted text-foreground p-4">
                             <div className="text-base animate-pulse flex items-center">
                               <span>Thinking</span>
@@ -854,7 +864,7 @@ export default function AssistantPage() {
                         </div>
                       )}
                     </div>
-                  <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} />
 
                     {/* Message Input */}
                     <div className="mx-auto max-w-3xl fixed bottom-0 z-10 mb-6 w-full">
@@ -863,16 +873,16 @@ export default function AssistantPage() {
                           <div className="relative">
                             <Textarea
                               placeholder="Ask anything"
-                  value={input}
+                              value={input}
                               onChange={(e) => {
                                 setInput(e.target.value)
                                 // Auto-resize the textarea
                                 e.target.style.height = 'auto'
                                 e.target.style.height = e.target.scrollHeight + 'px'
                               }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault()
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault()
                                   if (!isLoading && !typingMessageIndex) {
                                     handleSendMessage(input)
                                   }
@@ -896,9 +906,9 @@ export default function AssistantPage() {
                                   // Skip the typewriter animation for the current message
                                   setTypingMessageIndex(null)
                                 } else {
-                      handleSendMessage(input)
-                    }
-                  }}
+                                  handleSendMessage(input)
+                                }
+                              }}
                               disabled={!input.trim() && !isLoading && typingMessageIndex === null}
                             >
                               {isLoading || typingMessageIndex !== null ? (
@@ -958,7 +968,7 @@ export default function AssistantPage() {
                                     >
                                       <LightbulbIcon className="h-4 w-4" />
                                       <span className="text-sm">Reason</span>
-                </Button>
+                                    </Button>
                                   </TooltipTrigger>
                                   <TooltipContent side="top" sideOffset={5}>
                                     <p>Use StarlisThink</p>

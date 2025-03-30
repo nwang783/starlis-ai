@@ -80,9 +80,22 @@ export function NavConversations() {
       }
     }
 
+    // Listen for new conversation events
+    const handleConversationCreated = async () => {
+      if (!user) return
+      try {
+        const userConversations = await getUserConversations(user.uid)
+        setConversations(userConversations)
+      } catch (error) {
+        console.error("Error refreshing conversations:", error)
+      }
+    }
+
     window.addEventListener('conversationRenamed', handleConversationRenamed)
+    window.addEventListener('conversationCreated', handleConversationCreated)
     return () => {
       window.removeEventListener('conversationRenamed', handleConversationRenamed)
+      window.removeEventListener('conversationCreated', handleConversationCreated)
     }
   }, [user])
 
