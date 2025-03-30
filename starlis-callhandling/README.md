@@ -59,23 +59,30 @@ https://voip.starlis.tech
 All endpoints require two levels of authentication:
 
 1. **Origin Validation**: Requests must come from allowed domains specified in `ALLOWED_ORIGINS`
-2. **JWT Token**: A valid JWT token must be included in the request
+2. **JWT Token**: A valid single-use JWT token must be included in the request
+
+#### JWT Token Characteristics
+
+- Tokens are single-use only
+- Each token expires after 5 minutes
+- Tokens cannot be reused after first use
+- A new token must be generated for each request
 
 #### Generating JWT Tokens
 
-To generate a valid JWT token, use the following format:
+To generate a valid JWT token, use the following endpoint:
 
-```javascript
-const jwt = require('jsonwebtoken');
+```bash
+curl -X POST https://voip.starlis.tech/generate-token \
+  -H "Content-Type: application/json" \
+  -d '{"source": "frontend"}'
+```
 
-const token = jwt.sign(
-  { 
-    source: 'frontend', // or 'backend'
-    timestamp: Date.now()
-  },
-  'your-secure-jwt-secret-key',
-  { expiresIn: '1h' }
-);
+**Response:**
+```json
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
 ```
 
 #### Using JWT Tokens
@@ -128,9 +135,15 @@ Origin: https://your-frontend-domain.com
 
 **Example:**
 ```bash
+# 1. First, generate a token
+curl -X POST https://voip.starlis.tech/generate-token \
+  -H "Content-Type: application/json" \
+  -d '{"source": "frontend"}'
+
+# 2. Use the token to make the call (replace YOUR_TOKEN with the token from step 1)
 curl -X POST https://voip.starlis.tech/outbound-call \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-jwt-token" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Origin: https://your-frontend-domain.com" \
   -d '{
     "user_id": "your-user-id",
@@ -170,9 +183,15 @@ Origin: https://your-frontend-domain.com
 
 **Example:**
 ```bash
+# 1. Generate a new token
+curl -X POST https://voip.starlis.tech/generate-token \
+  -H "Content-Type: application/json" \
+  -d '{"source": "frontend"}'
+
+# 2. Use the token to end the call
 curl -X POST https://voip.starlis.tech/end-call \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-jwt-token" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Origin: https://your-frontend-domain.com" \
   -d '{
     "callSid": "CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
@@ -205,8 +224,14 @@ Origin: https://your-frontend-domain.com
 
 **Example:**
 ```bash
+# 1. Generate a new token
+curl -X POST https://voip.starlis.tech/generate-token \
+  -H "Content-Type: application/json" \
+  -d '{"source": "frontend"}'
+
+# 2. Use the token to check call status
 curl "https://voip.starlis.tech/call-status?callSid=CAXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX&user_id=your-user-id" \
-  -H "Authorization: Bearer your-jwt-token" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Origin: https://your-frontend-domain.com"
 ```
 
@@ -231,7 +256,16 @@ WebSocket: wss://voip.starlis.tech/outbound-media-stream?token=your-jwt-token
 
 **Example WebSocket Connection:**
 ```javascript
-const ws = new WebSocket(`wss://voip.starlis.tech/outbound-media-stream?token=your-jwt-token`);
+// 1. Generate a new token
+const response = await fetch('https://voip.starlis.tech/generate-token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ source: 'frontend' })
+});
+const { token } = await response.json();
+
+// 2. Use the token for WebSocket connection
+const ws = new WebSocket(`wss://voip.starlis.tech/outbound-media-stream?token=${token}`);
 ```
 
 ### Error Responses
@@ -248,6 +282,12 @@ or
 ```json
 {
     "error": "Invalid token"
+}
+```
+or
+```json
+{
+    "error": "Token has already been used. Please generate a new token."
 }
 ```
 
@@ -296,9 +336,11 @@ The system uses Firebase to store user credentials. Each user document in Firest
 3. User authentication is required for all endpoints
 4. Sensitive credentials are stored in Firebase and not exposed in API responses
 5. Environment variables should be kept secure and never committed to version control
-6. JWT tokens expire after 1 hour
-7. Only requests from allowed origins are accepted
-8. All requests must include a valid JWT token
+6. JWT tokens are single-use only
+7. Tokens expire after 5 minutes
+8. Only requests from allowed origins are accepted
+9. All requests must include a valid JWT token
+10. Used tokens cannot be reused
 
 ## Support
 
