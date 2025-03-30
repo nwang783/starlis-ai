@@ -4,29 +4,17 @@ import dotenv from 'dotenv';
 import Fastify from 'fastify';
 import Twilio from 'twilio';
 import WebSocket from 'ws';
+import admin from 'firebase-admin';
 
 // Load environment variables from .env file
 dotenv.config();
 
-// Check for required environment variables
-const {
-  ELEVENLABS_API_KEY,
-  ELEVENLABS_AGENT_ID,
-  TWILIO_ACCOUNT_SID,
-  TWILIO_AUTH_TOKEN,
-  TWILIO_PHONE_NUMBER,
-} = process.env;
-
-if (
-  !ELEVENLABS_API_KEY ||
-  !ELEVENLABS_AGENT_ID ||
-  !TWILIO_ACCOUNT_SID ||
-  !TWILIO_AUTH_TOKEN ||
-  !TWILIO_PHONE_NUMBER
-) {
-  console.error('Missing required environment variables');
-  throw new Error('Missing required environment variables');
-}
+// Initialize Firebase Admin SDK
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+const firestore = admin.firestore();
 
 // Initialize Fastify server
 const fastify = Fastify();
@@ -40,18 +28,51 @@ fastify.get('/', async (_, reply) => {
   reply.send({ message: 'Server is running' });
 });
 
-// Initialize Twilio client
-const twilioClient = new Twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+// Helper function to get credentials from Firestore
+async function getUserCredentials(userId) {
+  try {
+    const userDoc = await firestore.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      throw new Error(`User document not found for user ID: ${userId}`);
+    }
+
+    const voiceData = userDoc.data().voice || {};
+    const {
+      elevenLabsAgentId,
+      elevenLabsApiKey,
+      twilioApiKey,
+      twilioPhoneNumber,
+      twilioSid
+    } = voiceData;
+
+    // Validate all required credentials
+    if (!elevenLabsAgentId || !elevenLabsApiKey || 
+        !twilioApiKey || !twilioPhoneNumber || !twilioSid) {
+      throw new Error('Missing required credentials in Firestore document');
+    }
+
+    return {
+      elevenLabsAgentId,
+      elevenLabsApiKey,
+      twilioClient: new Twilio(twilioSid, twilioApiKey),
+      twilioPhoneNumber
+    };
+  } catch (error) {
+    console.error('Error fetching user credentials:', error);
+    throw error;
+  }
+}
 
 // Helper function to get signed URL for authenticated conversations
-async function getSignedUrl() {
+async function getSignedUrl(elevenLabsAgentId, elevenLabsApiKey) {
   try {
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${ELEVENLABS_AGENT_ID}`,
+      `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${elevenLabsAgentId}`,
       {
         method: 'GET',
         headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
+          'xi-api-key': elevenLabsApiKey,
         },
       }
     );
@@ -70,17 +91,25 @@ async function getSignedUrl() {
 
 // Route to initiate outbound calls
 fastify.post('/outbound-call', async (request, reply) => {
-  const { number, prompt, first_message } = request.body;
+  const { user_id, number, prompt, first_message } = request.body;
 
-  if (!number) {
-    return reply.code(400).send({ error: 'Phone number is required' });
+  if (!user_id || !number) {
+    return reply.code(400).send({ 
+      error: 'User ID and phone number are required' 
+    });
   }
 
   try {
+    // Fetch user credentials from Firestore
+    const { 
+      twilioClient, 
+      twilioPhoneNumber 
+    } = await getUserCredentials(user_id);
+
     const call = await twilioClient.calls.create({
-      from: TWILIO_PHONE_NUMBER,
+      from: twilioPhoneNumber,
       to: number,
-      url: `https://${request.headers.host}/outbound-call-twiml?prompt=${encodeURIComponent(
+      url: `https://${request.headers.host}/outbound-call-twiml?user_id=${encodeURIComponent(user_id)}&prompt=${encodeURIComponent(
         prompt
       )}&first_message=${encodeURIComponent(first_message)}`,
     });
@@ -94,13 +123,14 @@ fastify.post('/outbound-call', async (request, reply) => {
     console.error('Error initiating outbound call:', error);
     reply.code(500).send({
       success: false,
-      error: 'Failed to initiate call',
+      error: error.message || 'Failed to initiate call',
     });
   }
 });
 
 // TwiML route for outbound calls
 fastify.all('/outbound-call-twiml', async (request, reply) => {
+  const user_id = request.query.user_id || '';
   const prompt = request.query.prompt || '';
   const first_message = request.query.first_message || '';
 
@@ -108,6 +138,7 @@ fastify.all('/outbound-call-twiml', async (request, reply) => {
     <Response>
         <Connect>
         <Stream url="wss://${request.headers.host}/outbound-media-stream">
+            <Parameter name="user_id" value="${user_id}" />
             <Parameter name="prompt" value="${prompt}" />
             <Parameter name="first_message" value="${first_message}" />
         </Stream>
@@ -126,15 +157,22 @@ fastify.register(async (fastifyInstance) => {
     let streamSid = null;
     let callSid = null;
     let elevenLabsWs = null;
-    let customParameters = null; // Add this to store parameters
-
-    // Handle WebSocket errors
-    ws.on('error', console.error);
+    let customParameters = null;
+    let userCredentials = null;
 
     // Set up ElevenLabs connection
     const setupElevenLabs = async () => {
       try {
-        const signedUrl = await getSignedUrl();
+        // Fetch user credentials from Firestore
+        userCredentials = await getUserCredentials(customParameters.user_id);
+        
+        const signedUrl = await getSignedUrl(
+          userCredentials.elevenLabsAgentId, 
+          userCredentials.elevenLabsApiKey
+        );
+
+        console.log('[ElevenLabs] Signed URL obtained:', signedUrl);
+
         elevenLabsWs = new WebSocket(signedUrl);
 
         elevenLabsWs.on('open', () => {
@@ -144,8 +182,8 @@ fastify.register(async (fastifyInstance) => {
           const initialConfig = {
             type: 'conversation_initiation_client_data',
             dynamic_variables: {
-              user_name: 'Angelo',
-              user_id: 1234,
+              user_name: customParameters.user_id,
+              user_id: customParameters.user_id,
             },
             conversation_config_override: {
               agent: {
@@ -170,15 +208,26 @@ fastify.register(async (fastifyInstance) => {
         elevenLabsWs.on('message', (data) => {
           try {
             const message = JSON.parse(data);
+            console.log('[ElevenLabs] Raw Received Message:', JSON.stringify(message, null, 2));
 
             switch (message.type) {
               case 'conversation_initiation_metadata':
                 console.log('[ElevenLabs] Received initiation metadata');
+                console.log('[ElevenLabs] Initiation Metadata Details:', JSON.stringify(message, null, 2));
                 break;
 
               case 'audio':
+                console.log('[ElevenLabs] Received Audio Message');
+                console.log('[ElevenLabs] Audio Message Details:', {
+                  chunkExists: !!message.audio?.chunk,
+                  base64Exists: !!message.audio_event?.audio_base_64,
+                  chunkLength: message.audio?.chunk?.length,
+                  base64Length: message.audio_event?.audio_base_64?.length
+                });
+
                 if (streamSid) {
                   if (message.audio?.chunk) {
+                    console.log('[ElevenLabs] Sending Audio Chunk via Twilio Stream');
                     const audioData = {
                       event: 'media',
                       streamSid,
@@ -188,6 +237,7 @@ fastify.register(async (fastifyInstance) => {
                     };
                     ws.send(JSON.stringify(audioData));
                   } else if (message.audio_event?.audio_base_64) {
+                    console.log('[ElevenLabs] Sending Base64 Audio via Twilio Stream');
                     const audioData = {
                       event: 'media',
                       streamSid,
@@ -196,6 +246,8 @@ fastify.register(async (fastifyInstance) => {
                       },
                     };
                     ws.send(JSON.stringify(audioData));
+                  } else {
+                    console.log('[ElevenLabs] No audio payload found');
                   }
                 } else {
                   console.log('[ElevenLabs] Received audio but no StreamSid yet');
@@ -203,6 +255,7 @@ fastify.register(async (fastifyInstance) => {
                 break;
 
               case 'interruption':
+                console.log('[ElevenLabs] Received Interruption');
                 if (streamSid) {
                   ws.send(
                     JSON.stringify({
@@ -214,6 +267,7 @@ fastify.register(async (fastifyInstance) => {
                 break;
 
               case 'ping':
+                console.log('[ElevenLabs] Received Ping');
                 if (message.ping_event?.event_id) {
                   elevenLabsWs.send(
                     JSON.stringify({
@@ -226,13 +280,13 @@ fastify.register(async (fastifyInstance) => {
 
               case 'agent_response':
                 console.log(
-                  `[Twilio] Agent response: ${message.agent_response_event?.agent_response}`
+                  `[ElevenLabs] Agent Response: ${message.agent_response_event?.agent_response}`
                 );
                 break;
 
               case 'user_transcript':
                 console.log(
-                  `[Twilio] User transcript: ${message.user_transcription_event?.user_transcript}`
+                  `[ElevenLabs] User Transcript: ${message.user_transcription_event?.user_transcript}`
                 );
                 break;
 
@@ -256,9 +310,6 @@ fastify.register(async (fastifyInstance) => {
       }
     };
 
-    // Set up ElevenLabs connection
-    setupElevenLabs();
-
     // Handle messages from Twilio
     ws.on('message', (message) => {
       try {
@@ -274,14 +325,24 @@ fastify.register(async (fastifyInstance) => {
             customParameters = msg.start.customParameters; // Store parameters
             console.log(`[Twilio] Stream started - StreamSid: ${streamSid}, CallSid: ${callSid}`);
             console.log('[Twilio] Start parameters:', customParameters);
+            
+            // Set up ElevenLabs connection after receiving start parameters
+            setupElevenLabs();
             break;
 
           case 'media':
+            console.log('[Twilio] Received Media Event');
+            console.log('[Twilio] Media Payload Length:', msg.media.payload.length);
+            
             if (elevenLabsWs?.readyState === WebSocket.OPEN) {
               const audioMessage = {
                 user_audio_chunk: Buffer.from(msg.media.payload, 'base64').toString('base64'),
               };
+              console.log('[Twilio] Sending Audio to ElevenLabs');
+              console.log('[Twilio] Audio Chunk Length:', audioMessage.user_audio_chunk.length);
               elevenLabsWs.send(JSON.stringify(audioMessage));
+            } else {
+              console.log('[Twilio] ElevenLabs WebSocket not open');
             }
             break;
 
