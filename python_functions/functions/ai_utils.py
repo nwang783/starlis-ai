@@ -280,11 +280,7 @@ def process_with_claude(client, email_content, user_id, max_tool_calls=5):
             - Send appropriate responses that address all points raised
 
             6. FORMAT OF RESPONSES:
-                - Your response will be sent as an HTML email, so you can use basic formatting:
-                    - Use <p> tags for paragraphs
-                    - Use <br> for line breaks
-                    - Use <strong> for emphasis where appropriate
-                    - Use <ul> and <li> for lists when needed
+                - Use plain text
 
             Remember that you represent {first_name} professionally but are not impersonating him. Your goal is to manage his schedule efficiently and communicate clearly as his designated assistant.
             '''
