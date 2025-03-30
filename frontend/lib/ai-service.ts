@@ -21,7 +21,7 @@ export async function processAIMessage(
   userId: string,
   content: string,
   messages: Message[],
-  model: string = "gpt-4"
+  model: string 
 ): Promise<{ message: Message; action?: Action }> {
   console.log("Processing AI message for user:", userId)
 
@@ -36,6 +36,8 @@ export async function processAIMessage(
       },
     }
   }
+
+  console.log("User ID:", userId)
 
   if (!content) {
     console.error("Missing content in processAIMessage")
@@ -152,10 +154,15 @@ export async function processAIMessage(
 }
 
 // Generate AI response based on prompt
-export async function generateAIResponse(prompt: string, model: string = "gpt-4"): Promise<any> {
+export async function generateAIResponse(
+  prompt: string, 
+  userId: string = "default-user", // Add userId parameter with default value
+  model: string = "gpt-4"
+): Promise<any> {
   try {
-    // Use the processAIMessage function with a default user ID
-    return await processAIMessage("default-user", prompt, [], model)
+    // Pass the actual userId to processAIMessage
+    console.log("Generating AI response for user:", userId)
+    return await processAIMessage(userId, prompt, [], model)
   } catch (error) {
     console.error("Error generating AI response:", error)
     return {

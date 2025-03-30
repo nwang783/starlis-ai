@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     })
 
     // Use Anthropic's API by default
-    const aiResponse = await processMessageWithClaude(allMessages, model as "claude-3-7-sonnet-latest" | "claude-3-5-haiku-latest")
+    const aiResponse = await processMessageWithClaude(allMessages, model as "claude-3-7-sonnet-latest" | "claude-3-5-haiku-latest", userId)
 
     return NextResponse.json({
       message: {

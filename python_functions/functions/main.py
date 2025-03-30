@@ -7,6 +7,10 @@ import firebase_admin
 from firebase_functions.params import StringParam
 from email_utils import parse_sendgrid_inbound_email, extract_secretary_id_from_email, get_secretary_info, log_task, send_email_response
 from ai_utils import process_with_ai
+import logging
+from typing import Dict, Any
+import anthropic 
+from ai_utils import process_with_claude  # Reuse your existing function
 
 # Initialize Firebase Admin SDK
 try:
@@ -20,6 +24,7 @@ except ValueError:
 db = firestore.client()
 
 SENDING_DOMAIN = StringParam('SENDING_DOMAIN', 'starlis.com')
+CLAUDE_API_KEY_2 = StringParam('CLAUDE_API_KEY_2')
 
 
 @https_fn.on_request(
@@ -213,3 +218,72 @@ def process_sendgrid_inbound_email(request: Request) -> Response:
     except Exception as e:
         print(f"Error processing email: {str(e)}")
         return Response(f"Error processing email: {str(e)}", status=500)
+
+@https_fn.on_call()
+def process_claude_message(req: https_fn.CallableRequest) -> Dict[str, Any]:
+    """
+    Process messages using Claude API, leveraging existing tools infrastructure
+    
+    Expected request data:
+    {
+        "messages": [{"role": "user"|"assistant"|"system", "content": string}],
+        "model": "claude-3-7-sonnet-latest"|"claude-3-5-haiku-latest",
+        "userId": string
+    }
+    """
+    try:
+        data = req.data
+        messages = data.get("messages", [])
+        model = data.get("model", "claude-3-7-sonnet-latest")
+        user_id = data.get("userId")
+        
+        if not user_id:
+            return {"error": "Missing userId in request"}
+            
+        if not messages:
+            return {"error": "No messages provided"}
+        
+        # Convert Claude model name from frontend format to backend format
+        # Frontend uses: "claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"
+        # Backend uses: "claude-3-7-sonnet-20250219" or similar
+        if model == "claude-3-7-sonnet-latest":
+            backend_model = "claude-3-7-sonnet-20250219"
+        elif model == "claude-3-5-haiku-latest":
+            backend_model = "claude-3-5-haiku-20250604"
+        else:
+            backend_model = model  # Fallback to whatever was provided
+            
+        # Format the conversation content for process_with_claude
+        # Create a single content string that Claude can process
+        conversation_content = ""
+        for msg in messages:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            conversation_content += f"\n\n{role.upper()}: {content}"
+        
+        # Initialize Anthropic client
+        client = anthropic.Anthropic(api_key=CLAUDE_API_KEY_2.value)
+        
+        # Process with existing function
+        result, logs = process_with_claude(
+            client=client,
+            email_content=conversation_content,
+            user_id=user_id
+        )
+        
+        # Extract the result content
+        if isinstance(result, dict) and "email_response" in result:
+            response_content = result["email_response"]
+        elif isinstance(result, str):
+            response_content = result
+        else:
+            response_content = "I'm sorry, there was an error processing your request."
+        
+        # Return in the format expected by the frontend
+        return {
+            "content": response_content
+        }
+        
+    except Exception as e:
+        logging.error(f"Error in process_claude_message: {str(e)}")
+        return {"error": f"Failed to process message: {str(e)}"}
