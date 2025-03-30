@@ -47,6 +47,27 @@ FIREBASE_SERVICE_ACCOUNT_KEY=your-firebase-service-account-json
 npm start
 ```
 
+## CORS Configuration
+
+The API supports Cross-Origin Resource Sharing (CORS) with the following configuration:
+
+- **Allowed Origins**: Configured through `ALLOWED_ORIGINS` environment variable
+- **Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS
+- **Allowed Headers**: Content-Type, Authorization, Origin
+- **Credentials**: Supported
+- **Max Age**: 24 hours
+
+Example CORS configuration:
+```javascript
+{
+  origin: ['https://your-frontend-domain.com', 'https://your-backend-domain.com'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+}
+```
+
 ## API Documentation
 
 ### Base URL
@@ -319,12 +340,14 @@ The system uses Firebase to store user credentials. Each user document in Firest
 
 ```json
 {
-    "voice": {
-        "elevenLabsAgentId": "string",
-        "elevenLabsApiKey": "string",
-        "twilioApiKey": "string",
-        "twilioPhoneNumber": "string",
-        "twilioSid": "string"
+    "onboarding": {
+        "voice": {
+            "elevenLabsAgentId": "string",
+            "elevenLabsApiKey": "string",
+            "twilioApiKey": "string",
+            "twilioPhoneNumber": "string",
+            "twilioSid": "string"
+        }
     }
 }
 ```
@@ -341,6 +364,8 @@ The system uses Firebase to store user credentials. Each user document in Firest
 8. Only requests from allowed origins are accepted
 9. All requests must include a valid JWT token
 10. Used tokens cannot be reused
+11. CORS is configured to only allow specific origins
+12. Credentials are supported for authenticated requests
 
 ## Support
 

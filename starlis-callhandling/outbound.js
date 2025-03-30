@@ -1,5 +1,6 @@
 import fastifyFormBody from '@fastify/formbody';
 import fastifyWs from '@fastify/websocket';
+import fastifyCors from '@fastify/cors';
 import dotenv from 'dotenv';
 import Fastify from 'fastify';
 import Twilio from 'twilio';
@@ -24,8 +25,17 @@ const firestore = admin.firestore();
 
 // Initialize Fastify server
 const fastify = Fastify();
+
+// Register plugins
 fastify.register(fastifyFormBody);
 fastify.register(fastifyWs);
+fastify.register(fastifyCors, {
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || [],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+});
 
 const PORT = process.env.PORT || 8000;
 const JWT_SECRET = process.env.JWT_SECRET;
