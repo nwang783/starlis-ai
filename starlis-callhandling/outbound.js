@@ -5,6 +5,7 @@ import Fastify from 'fastify';
 import Twilio from 'twilio';
 import WebSocket from 'ws';
 import admin from 'firebase-admin';
+import { verifyToken, generateToken } from './jwtUtils.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -22,6 +23,37 @@ fastify.register(fastifyFormBody);
 fastify.register(fastifyWs);
 
 const PORT = process.env.PORT || 8000;
+const JWT_SECRET = process.env.JWT_SECRET;
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || [];
+
+// Authentication middleware
+const authenticateRequest = async (request, reply) => {
+  try {
+    // Check origin
+    const origin = request.headers.origin;
+    if (!ALLOWED_ORIGINS.includes(origin)) {
+      return reply.code(403).send({ error: 'Unauthorized origin' });
+    }
+
+    // Get token from Authorization header
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return reply.code(401).send({ error: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    // Verify token using our utility function
+    const decoded = verifyToken(token);
+    
+    // Add decoded token to request for later use
+    request.user = decoded;
+    
+    return;
+  } catch (error) {
+    return reply.code(401).send({ error: error.message || 'Invalid token' });
+  }
+};
 
 // Root route for health check
 fastify.get('/', async (_, reply) => {
@@ -90,7 +122,7 @@ async function getSignedUrl(elevenLabsAgentId, elevenLabsApiKey) {
 }
 
 // Route to initiate outbound calls
-fastify.post('/outbound-call', async (request, reply) => {
+fastify.post('/outbound-call', { preHandler: authenticateRequest }, async (request, reply) => {
   const { user_id, number, prompt, first_message } = request.body;
 
   if (!user_id || !number) {
@@ -149,7 +181,7 @@ fastify.all('/outbound-call-twiml', async (request, reply) => {
 });
 
 // Route to end an ongoing call
-fastify.post('/end-call', async (request, reply) => {
+fastify.post('/end-call', { preHandler: authenticateRequest }, async (request, reply) => {
   const { callSid, user_id } = request.body;
 
   if (!callSid || !user_id) {
@@ -179,7 +211,7 @@ fastify.post('/end-call', async (request, reply) => {
 });
 
 // Route to check the status of a call
-fastify.get('/call-status', async (request, reply) => {
+fastify.get('/call-status', { preHandler: authenticateRequest }, async (request, reply) => {
   const { callSid, user_id } = request.query;
 
   if (!callSid || !user_id) {
@@ -214,7 +246,30 @@ fastify.get('/call-status', async (request, reply) => {
 
 // WebSocket route for handling media streams
 fastify.register(async (fastifyInstance) => {
-  fastifyInstance.get('/outbound-media-stream', { websocket: true }, (ws, req) => {
+  fastifyInstance.get('/outbound-media-stream', { 
+    websocket: true,
+    preHandler: async (request, reply) => {
+      try {
+        // Check origin
+        const origin = request.headers.origin;
+        if (!ALLOWED_ORIGINS.includes(origin)) {
+          return reply.code(403).send({ error: 'Unauthorized origin' });
+        }
+
+        // Get token from query parameters
+        const token = request.query.token;
+        if (!token) {
+          return reply.code(401).send({ error: 'No token provided' });
+        }
+
+        // Verify token
+        const decoded = verifyToken(token);
+        request.user = decoded;
+      } catch (error) {
+        return reply.code(401).send({ error: 'Invalid token' });
+      }
+    }
+  }, (ws, req) => {
     console.info('[Server] Twilio connected to outbound media stream');
 
     // Variables to track the call
@@ -510,6 +565,27 @@ fastify.register(async (fastifyInstance) => {
       }
     });
   });
+});
+
+// Token generation endpoint
+fastify.post('/generate-token', async (request, reply) => {
+  const { source } = request.body;
+
+  if (!source || !['frontend', 'backend'].includes(source)) {
+    return reply.code(400).send({ 
+      error: 'Invalid source. Must be either "frontend" or "backend"' 
+    });
+  }
+
+  try {
+    const token = generateToken(source);
+    reply.send({ token });
+  } catch (error) {
+    console.error('Error generating token:', error);
+    reply.code(500).send({
+      error: 'Failed to generate token'
+    });
+  }
 });
 
 // Start the Fastify server
