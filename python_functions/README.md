@@ -10,4 +10,4 @@ GOOGLE_CLIENT_SECRET=GOCSPX-...
 
 2. download credentials.json from GCP and place it in the functions directory
 3. Download service account key from firebase and name in "starlis_admin_creds.json"
-4. Run the get_token.py script with a valid userID
+4. (No longer necessary) Run the get_token.py script with a valid userID

@@ -47,10 +47,10 @@ def get_calendar_token(user_id):
         user_data = user_doc.to_dict()
         
         # Check if the user has Google Calendar tokens
-        if 'calendar' not in user_data or 'token' not in user_data['calendar']:
+        if 'google_oauth_token' not in user_data or 'access_token' not in user_data['google_oauth_token']:
             raise ValueError(f"User {user_id} has no Google Calendar tokens")
             
-        return user_data['calendar']['token'], user_data['calendar']['refresh_token']
+        return user_data['google_oauth_token']['access_token'], user_data['google_oauth_token']['refresh_token']
     except Exception as e:
         print(f"Error getting calendar token: {e}")
         # For testing/development only - would remove in production
