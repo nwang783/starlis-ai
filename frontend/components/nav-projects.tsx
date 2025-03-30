@@ -8,6 +8,7 @@ import {
   Trash2,
   PencilIcon,
   type LucideIcon,
+  Phone,
 } from "lucide-react"
 
 import {
@@ -41,6 +42,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { getUserConversations, deleteConversation, updateConversationName } from "@/lib/firebase/conversations"
+import { NewCallModal } from "@/components/new-call-modal"
 
 export function NavConversations() {
   const { isMobile } = useSidebar()
@@ -52,6 +54,7 @@ export function NavConversations() {
   const [newName, setNewName] = useState("")
   const [conversations, setConversations] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [showNewCallModal, setShowNewCallModal] = useState(false)
 
   // Fetch conversations when component mounts
   useEffect(() => {
@@ -168,6 +171,16 @@ export function NavConversations() {
                 <span>New conversation</span>
               </a>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2"
+              onClick={() => setShowNewCallModal(true)}
+            >
+              <Phone className="h-4 w-4" />
+              <span>New Call</span>
+            </Button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
@@ -312,6 +325,7 @@ export function NavConversations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <NewCallModal open={showNewCallModal} onOpenChange={setShowNewCallModal} />
     </>
   )
 }
