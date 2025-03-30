@@ -528,7 +528,39 @@ fastify.register(async (fastifyInstance) => {
 
 // WebSocket route for front-end streaming
 fastify.register(async (fastifyInstance) => {
-  fastifyInstance.get('/frontend-stream', { websocket: true }, (ws, req) => {
+  fastifyInstance.get('/frontend-stream', { 
+    websocket: true,
+    preHandler: async (request, reply) => {
+      try {
+        // Check origin
+        const origin = request.headers.origin;
+        if (!ALLOWED_ORIGINS.includes(origin)) {
+          console.error('[WebSocket] Unauthorized origin:', origin);
+          return reply.code(403).send({ error: 'Unauthorized origin' });
+        }
+
+        // Get token from query parameters
+        const token = request.query.token;
+        if (!token) {
+          console.error('[WebSocket] No token provided');
+          return reply.code(401).send({ error: 'No token provided' });
+        }
+
+        // Verify token
+        try {
+          const decoded = verifyToken(token);
+          request.user = decoded;
+          console.log('[WebSocket] Token verified successfully');
+        } catch (error) {
+          console.error('[WebSocket] Token verification failed:', error.message);
+          return reply.code(401).send({ error: 'Invalid token' });
+        }
+      } catch (error) {
+        console.error('[WebSocket] Pre-handler error:', error);
+        return reply.code(500).send({ error: 'Internal server error' });
+      }
+    }
+  }, (ws, req) => {
     console.info('[Server] Front-end WebSocket connected');
 
     // Extract query parameters
@@ -553,35 +585,43 @@ fastify.register(async (fastifyInstance) => {
 
         if (msg.event === 'connect-twilio') {
           // Connect to Twilio media stream WebSocket
-          twilioWs = new WebSocket(`wss://${req.headers.host}/outbound-media-stream?callSid=${callSid}&user_id=${user_id}`);
+          const wsUrl = `wss://${req.headers.host}/outbound-media-stream?callSid=${callSid}&user_id=${user_id}`;
+          console.log('[Front-end] Connecting to Twilio WebSocket:', wsUrl);
+          
+          twilioWs = new WebSocket(wsUrl);
 
           twilioWs.on('open', () => {
             console.log('[Twilio] Connected to Twilio media stream');
           });
 
           twilioWs.on('message', (data) => {
-            const twilioMessage = JSON.parse(data);
+            try {
+              const twilioMessage = JSON.parse(data);
+              console.log('[Twilio] Received message type:', twilioMessage.event);
 
-            // Forward Twilio media and transcription events to the front-end
-            if (twilioMessage.event === 'media') {
-              ws.send(
-                JSON.stringify({
-                  event: 'audio',
-                  payload: twilioMessage.media.payload,
-                })
-              );
-            } else if (twilioMessage.event === 'transcription') {
-              ws.send(
-                JSON.stringify({
-                  event: 'transcription',
-                  text: twilioMessage.transcription.text,
-                })
-              );
+              // Forward Twilio media and transcription events to the front-end
+              if (twilioMessage.event === 'media') {
+                ws.send(
+                  JSON.stringify({
+                    event: 'audio',
+                    payload: twilioMessage.media.payload,
+                  })
+                );
+              } else if (twilioMessage.event === 'transcription') {
+                ws.send(
+                  JSON.stringify({
+                    event: 'transcription',
+                    text: twilioMessage.transcription.text,
+                  })
+                );
+              }
+            } catch (error) {
+              console.error('[Twilio] Error processing message:', error);
             }
           });
 
-          twilioWs.on('close', () => {
-            console.log('[Twilio] Disconnected from Twilio media stream');
+          twilioWs.on('close', (code, reason) => {
+            console.log(`[Twilio] Disconnected from Twilio media stream. Code: ${code}, Reason: ${reason}`);
           });
 
           twilioWs.on('error', (error) => {
@@ -594,11 +634,16 @@ fastify.register(async (fastifyInstance) => {
     });
 
     // Handle WebSocket closure
-    ws.on('close', () => {
-      console.log('[Front-end] WebSocket disconnected');
+    ws.on('close', (code, reason) => {
+      console.log(`[Front-end] WebSocket disconnected. Code: ${code}, Reason: ${reason}`);
       if (twilioWs?.readyState === WebSocket.OPEN) {
         twilioWs.close();
       }
+    });
+
+    // Handle WebSocket errors
+    ws.on('error', (error) => {
+      console.error('[Front-end] WebSocket error:', error);
     });
   });
 });

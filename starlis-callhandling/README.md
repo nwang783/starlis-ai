@@ -353,7 +353,81 @@ const { token } = await response.json();
 
 // 2. Use the token for WebSocket connection
 const ws = new WebSocket(`wss://voip.starlis.tech/outbound-media-stream?token=${token}`);
+
+// 3. Handle WebSocket events
+ws.onopen = () => {
+  console.log('WebSocket connected');
+  // Send connect-twilio event with call details
+  ws.send(JSON.stringify({
+    event: 'connect-twilio',
+    callSid: 'your-call-sid',
+    user_id: 'your-user-id'
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received message:', data);
+  
+  switch (data.event) {
+    case 'audio':
+      // Handle audio data
+      console.log('Received audio data');
+      break;
+    case 'transcription':
+      // Handle transcription
+      console.log('Received transcription:', data.text);
+      break;
+    default:
+      console.log('Unknown event type:', data.event);
+  }
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+
+ws.onclose = (event) => {
+  console.log('WebSocket closed:', event.code, event.reason);
+};
+
+// 4. Clean up on component unmount
+function cleanup() {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.close();
+  }
+}
+
+// Call cleanup when component unmounts
+// React example:
+useEffect(() => {
+  return () => cleanup();
+}, []);
 ```
+
+### Common WebSocket Issues
+
+1. **Connection Failures**:
+   - Ensure the token is valid and not expired
+   - Check that the origin is allowed in CORS configuration
+   - Verify the WebSocket URL is correct
+   - Check server logs for detailed error messages
+
+2. **Authentication Issues**:
+   - Make sure to include a valid JWT token in the WebSocket URL
+   - Token must be generated before establishing the connection
+   - Token must not be expired or already used
+
+3. **Connection Drops**:
+   - Implement reconnection logic
+   - Handle WebSocket close events
+   - Check network connectivity
+   - Monitor server logs for disconnection reasons
+
+4. **Performance Issues**:
+   - Monitor message size and frequency
+   - Implement rate limiting if needed
+   - Consider implementing heartbeat mechanism
 
 ### Error Responses
 
