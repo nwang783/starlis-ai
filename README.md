@@ -1,4 +1,5 @@
 # Starlis - Your Intelligent AI Assistant
+![Starlis README](frontend/public/starlis_readme.png)
 
 Starlis is a powerful AI assistant that helps you manage emails, schedule meetings, and boost productivity through natural language interactions. Built with modern web technologies and advanced AI capabilities, Starlis provides a seamless experience for managing your daily tasks.
 
@@ -45,3 +46,4 @@ Starlis is a powerful AI assistant that helps you manage emails, schedule meetin
 - [Anthropic](https://www.anthropic.com/) for Claude AI
 - [Twilio](https://www.twilio.com/) for voice capabilities
 - [ElevenLabs](https://elevenlabs.io/) for voice synthesis
+- [v0](https://v0.dev/) for some web development work
