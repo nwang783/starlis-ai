@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import os
 import json
 import pytz
+import csv
 
 # Agent SDK imports
 from agents import Agent, Runner, function_tool, gen_trace_id, trace, handoff, RunContextWrapper
@@ -1082,6 +1083,149 @@ This invitation was sent using Personal Assistant.
         from_name=from_name
     )
 
+@function_tool
+def lookup_contact(name: str) -> str:
+    """Look up a contact's email address by name
+    
+    Args:
+        name: The name of the contact to look up (full or partial name)
+    
+    Returns:
+        The contact's details including email address, or an error message if not found
+    """
+    try:
+        # Path to the contacts CSV file
+        contacts_file = "contacts.csv"
+        
+        # Check if the file exists
+        if not os.path.exists(contacts_file):
+            return f"Error: Contacts file '{contacts_file}' not found."
+        
+        # Read the contacts from the CSV file
+        contacts = []
+        with open(contacts_file, 'r') as file:
+            reader = csv.DictReader(file, skipinitialspace=True)  # Add skipinitialspace=True
+            for row in reader:
+                contacts.append(row)
+        
+        # Search for contacts matching the name (case-insensitive partial match)
+        name_lower = name.lower()
+        matching_contacts = []
+        
+        for contact in contacts:
+            # Print the contact for debugging
+            print(f"Debug - Contact data: {contact}")
+            
+            contact_name = contact.get('name', '')
+            if not contact_name:
+                continue
+                
+            if name_lower in contact_name.lower():
+                matching_contacts.append(contact)
+        
+        # Return the results
+        if not matching_contacts:
+            return f"No contacts found matching '{name}'."
+        
+        if len(matching_contacts) == 1:
+            contact = matching_contacts[0]
+            # Get values with proper error handling
+            contact_name = contact.get('name', 'Unknown')
+            contact_email = contact.get('email', 'N/A')
+            contact_phone = contact.get('phone', 'N/A')
+            
+            return f"Contact found: {contact_name}, Email: {contact_email}, Phone: {contact_phone}"
+        else:
+            # Multiple matches, return all
+            result = f"Found {len(matching_contacts)} contacts matching '{name}':\n\n"
+            for i, contact in enumerate(matching_contacts, 1):
+                contact_name = contact.get('name', 'Unknown')
+                contact_email = contact.get('email', 'N/A')
+                contact_phone = contact.get('phone', 'N/A')
+                
+                result += f"{i}. {contact_name}, Email: {contact_email}, Phone: {contact_phone}\n"
+            return result
+    
+    except Exception as e:
+        return f"An error occurred while looking up contact: {str(e)}"
+
+@function_tool
+def list_all_contacts() -> str:
+    """List all contacts in the address book
+    
+    Returns:
+        A formatted list of all contacts
+    """
+    try:
+        # Path to the contacts CSV file
+        contacts_file = "contacts.csv"
+        
+        # Check if the file exists
+        if not os.path.exists(contacts_file):
+            return f"Error: Contacts file '{contacts_file}' not found."
+        
+        # Read the contacts from the CSV file
+        contacts = []
+        with open(contacts_file, 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                contacts.append(row)
+        
+        # Return the results
+        if not contacts:
+            return "No contacts found in the address book."
+        
+        result = f"Found {len(contacts)} contacts in the address book:\n\n"
+        for i, contact in enumerate(contacts, 1):
+            result += f"{i}. {contact.get('name')}, Email: {contact.get('email')}, Phone: {contact.get('phone', 'N/A')}\n"
+        return result
+    
+    except Exception as e:
+        return f"An error occurred while listing contacts: {str(e)}"
+
+@function_tool
+def add_contact(name: str, email: str, phone: Optional[str] = None) -> str:
+    """Add a new contact to the address book
+    
+    Args:
+        name: The name of the contact
+        email: The email address of the contact
+        phone: Optional phone number of the contact
+    
+    Returns:
+        A confirmation message
+    """
+    try:
+        # Path to the contacts CSV file
+        contacts_file = "contacts.csv"
+        
+        # Check if the file exists, create it with headers if not
+        file_exists = os.path.exists(contacts_file)
+        
+        # Prepare the new contact data
+        if phone is None:
+            phone = ""
+        
+        new_contact = {'name': name, 'email': email, 'phone': phone}
+        
+        # Write to the CSV file
+        with open(contacts_file, 'a', newline='') as file:
+            # Create writer with appropriate headers
+            headers = ['name', 'email', 'phone']
+            writer = csv.DictWriter(file, fieldnames=headers)
+            
+            # Write headers if file doesn't exist
+            if not file_exists:
+                writer.writeheader()
+            
+            # Write the new contact
+            writer.writerow(new_contact)
+        
+        return f"Contact added successfully: {name}, Email: {email}, Phone: {phone}"
+    
+    except Exception as e:
+        return f"An error occurred while adding contact: {str(e)}"
+
 ###########################################
 # Create Specialized Agents
 ###########################################
@@ -1104,13 +1248,10 @@ def create_calendar_agent():
         - Update existing events (change time, description, attendees, etc.)
         - List upcoming events from the calendar
         - Delete events when requested
-        - Send calendar invitations to attendees
         
         When managing calendar events:
         - Extract all relevant details from the user's request
         - Format dates and times in ISO format for API calls
-        - Always confirm details before creating or modifying events
-        - Send notifications to attendees for events when appropriate
         - Always use the user's timezone ({USER_TIMEZONE}) when interpreting dates and times
         
         Provide clear and concise responses about the actions you've taken.
@@ -1181,8 +1322,13 @@ def create_email_agent():
         - Create professionally formatted HTML emails
         - Send event invitations via email
         - Support CC and BCC recipients
+        - Look up contacts by name to find their email addresses
+        - List all contacts in the address book
+        - Add new contacts to the address book
         
         When sending emails:
+        - If the user mentions sending an email to someone by name, use the lookup_contact tool 
+          to find their email address
         - Format emails in HTML for better readability
         - Use appropriate styling based on the email's context
         - Include all necessary information
@@ -1190,12 +1336,20 @@ def create_email_agent():
         - IMPORTANT: Make sure to specify that you are an AI assistant that is sending an email
           on behalf of the user. DO NOT pretend to be the user.
         
-        Provide clear confirmations when emails have been sent successfully.
+        When managing contacts:
+        - Use lookup_contact to find specific contacts by name
+        - Use list_all_contacts to show all contacts in the address book
+        - Use add_contact to add new contacts with their name, email, and optional phone number
+        
+        Provide clear confirmations when emails have been sent successfully or contacts have been managed.
         """,
         tools=[
             send_email,
             create_html_email,
-            send_event_invitation_email
+            send_event_invitation_email,
+            lookup_contact,
+            list_all_contacts,
+            add_contact
         ],
         model_settings=ModelSettings(tool_choice="auto"),
     )
@@ -1273,10 +1427,12 @@ def create_personal_assistant():
            - Getting details about specific places
         
         3. EMAIL ASSISTANT:
-           Hand off to this assistant for:
-           - Composing and sending emails
-           - Creating formatted HTML emails
-           - Sending event invitations via email
+        Hand off to this assistant for:
+        - Composing and sending emails
+        - Creating formatted HTML emails
+        - Sending event invitations via email
+        - Looking up contacts by name
+        - Managing the address book (listing or adding contacts)
         
         WHEN TO USE HANDOFFS:
         - When a request clearly belongs to one of the specialized assistants
