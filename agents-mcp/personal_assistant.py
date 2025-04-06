@@ -6,12 +6,13 @@ import os
 import json
 import pytz
 import csv
+from bs4 import BeautifulSoup
+import re
 
 # Agent SDK imports
 from agents import Agent, Runner, function_tool, gen_trace_id, trace, handoff, RunContextWrapper
 from agents.model_settings import ModelSettings
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
-from agents.tool import WebSearchTool
 
 # Google API imports
 from google.oauth2.credentials import Credentials
@@ -22,6 +23,9 @@ from googlemaps import Client as GoogleMapsClient
 # Email imports
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Email, To, Content, Personalization
+
+# Brace Search imports
+import aiohttp
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -37,6 +41,10 @@ USER_TIMEZONE = 'America/New_York'
 USER_EMAIL = "nwangbusiness783@gmail.com"
 USER_FULL_NAME = "Nathan Wang"
 ASSISTANT_NAME = "Starla"
+
+# Brave Search API
+BRAVE_SEARCH_API_KEY = os.environ.get("BRAVE_SEARCH_API_KEY")
+BRAVE_SEARCH_API_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 
 ###########################################
 # Google Calendar Tools
@@ -1226,19 +1234,169 @@ def add_contact(name: str, email: str, phone: Optional[str] = None) -> str:
     
     except Exception as e:
         return f"An error occurred while adding contact: {str(e)}"
+    
+###########################################
+# Search Tool
+###########################################
 
+@function_tool
+async def brave_search(query: str) -> str:
+    """
+    Perform a web search using the Brave Search API
+    
+    Args:
+        query: The search query string
+    
+    Returns:
+        A string with the search results
+    """
+    if not BRAVE_SEARCH_API_KEY:
+        return "Error: Brave Search API key not found in environment variables"
+    
+    try:
+        headers = {
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip",
+            "X-Subscription-Token": BRAVE_SEARCH_API_KEY
+        }
+        
+        params = {
+            "q": query,
+            "count": 10,  # Number of results
+            "country": "US",
+            "search_lang": "en"  # Language for search results
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(BRAVE_SEARCH_API_ENDPOINT, headers=headers, params=params) as response:
+                if response.status != 200:
+                    return f"Error: API request failed with status {response.status}"
+                
+                data = await response.json()
+                
+                # Extract and format search results
+                results = []
+                
+                # Process web pages
+                if "web" in data and "results" in data["web"]:
+                    for result in data["web"]["results"]:
+                        title = result.get("title", "No title")
+                        url = result.get("url", "")
+                        description = result.get("description", "No description")
+                        
+                        formatted_result = f"Title: {title}\nURL: {url}\nDescription: {description}\n"
+                        results.append(formatted_result)
+                
+                # Process news (if available)
+                if "news" in data and "results" in data["news"]:
+                    results.append("\n--- NEWS RESULTS ---\n")
+                    for news in data["news"]["results"]:
+                        title = news.get("title", "No title")
+                        url = news.get("url", "")
+                        description = news.get("description", "No description")
+                        
+                        formatted_news = f"Title: {title}\nURL: {url}\nDescription: {description}\n"
+                        results.append(formatted_news)
+                
+                if not results:
+                    return f"No results found for query: '{query}'"
+                
+                return "SEARCH RESULTS:\n\n" + "\n".join(results)
+    
+    except Exception as e:
+        return f"An error occurred while performing the search: {str(e)}"
+    
+@function_tool
+async def fetch_webpage_content(url: str) -> str:
+    """
+    Fetch and extract the text content from a webpage
+    
+    Args:
+        url: The URL of the webpage to fetch content from
+    
+    Returns:
+        A string with the extracted text content from the webpage
+    """
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Referer": "https://www.google.com/",
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1"
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=10) as response:
+                if response.status != 200:
+                    return f"Error: Failed to fetch webpage. Status code: {response.status}"
+                
+                # Get the content type to handle different types of responses
+                content_type = response.headers.get('Content-Type', '').lower()
+                
+                # Handle HTML content
+                if 'text/html' in content_type:
+                    html_content = await response.text()
+                    
+                    # Parse the HTML
+                    soup = BeautifulSoup(html_content, 'html.parser')
+                    
+                    # Remove script and style elements
+                    for script_or_style in soup(["script", "style", "noscript", "iframe", "head"]):
+                        script_or_style.decompose()
+                    
+                    # Extract text and clean it up
+                    text = soup.get_text()
+                    
+                    # Clean up the text
+                    # Replace multiple newlines with a single one
+                    text = re.sub(r'\n+', '\n', text)
+                    # Replace multiple spaces with a single one
+                    text = re.sub(r'\s+', ' ', text)
+                    # Split into lines and strip each line
+                    lines = [line.strip() for line in text.splitlines() if line.strip()]
+                    # Rejoin with newlines
+                    text = '\n'.join(lines)
+                    
+                    # Limit the response size (100,000 characters)
+                    if len(text) > 100000:
+                        text = text[:100000] + "\n\n[Content truncated due to size limitations...]"
+                    
+                    return f"WEBPAGE CONTENT FROM {url}:\n\n{text}"
+                    
+                # Handle JSON content
+                elif 'application/json' in content_type:
+                    json_content = await response.json()
+                    return f"JSON CONTENT FROM {url}:\n\n{json.dumps(json_content, indent=2)}"
+                    
+                # Handle other text-based content
+                elif 'text/' in content_type:
+                    text_content = await response.text()
+                    return f"TEXT CONTENT FROM {url}:\n\n{text_content}"
+                    
+                # Handle binary or unknown content types
+                else:
+                    return f"Unable to extract content from {url}. Content type is {content_type}, which is not supported."
+    
+    except aiohttp.ClientError as e:
+        return f"Network error while fetching webpage content: {str(e)}"
+    except Exception as e:
+        return f"An error occurred while fetching webpage content: {str(e)}"
+    
 ###########################################
 # Create Specialized Agents
 ###########################################
 
 def create_search_agent():
-    """Create a specialized Search agent using Brave search"""
+    """Create a specialized Search agent with web content fetching capability"""
     
     search_agent = Agent(
         name="Search Assistant",
         instructions="""
         You are a specialized Search Assistant. Your purpose is to help users find 
-        information on the web through search queries.
+        information on the web through search queries using the Brave Search API.
 
         When handling search requests:
         1. Identify the key information needs or questions
@@ -1247,7 +1405,17 @@ def create_search_agent():
         4. Include relevant sources/citations for all information
         5. Present information in a structured, easy-to-understand format
         
-        When searching:
+        You have access to these tools:
+        - brave_search: For general searches using US as the default location
+        - brave_search_with_country: For searches where the user wants results from a specific country
+        - fetch_webpage_content: For fetching the actual content from a webpage URL
+        
+        SEARCH WORKFLOW:
+        1. First, use brave_search or brave_search_with_country to find relevant web pages
+        2. When you need more detailed information, use fetch_webpage_content on the most relevant URL
+        3. Extract and summarize the key information from the fetched webpage content
+        
+        When searching and fetching content:
         - Request clarification if the search query is ambiguous
         - Focus on recent results for time-sensitive queries
         - Synthesize information from multiple sources when appropriate
@@ -1255,17 +1423,18 @@ def create_search_agent():
         - Acknowledge when information is not available or unclear
         
         Important guidelines:
-        - Always cite your sources when providing information from search results
-        - Do not reproduce large amounts of copyrighted content from search results
+        - Always cite your sources when providing information from search results or webpage content
+        - Do not reproduce large amounts of copyrighted content
         - Limit direct quotes to 25 words or fewer
-        - For lengthy content, provide a brief summary and encourage the user to visit the source
+        - Provide brief summaries of content and encourage users to visit the source for more details
         - Never reproduce or generate song lyrics, even if asked
         
-        Always provide properly cited responses with relevant details from search results.
+        Always provide properly cited responses with relevant details from search results and webpage content.
         After completing a search, summarize the key findings clearly.
         """,
         tools=[
-            WebSearchTool()
+            brave_search,
+            fetch_webpage_content
         ],
         model_settings=ModelSettings(tool_choice="auto"),
     )
