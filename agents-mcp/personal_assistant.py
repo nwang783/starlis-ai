@@ -11,6 +11,7 @@ import csv
 from agents import Agent, Runner, function_tool, gen_trace_id, trace, handoff, RunContextWrapper
 from agents.model_settings import ModelSettings
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
+from agents.tool import WebSearchTool
 
 # Google API imports
 from google.oauth2.credentials import Credentials
@@ -1230,6 +1231,47 @@ def add_contact(name: str, email: str, phone: Optional[str] = None) -> str:
 # Create Specialized Agents
 ###########################################
 
+def create_search_agent():
+    """Create a specialized Search agent using Brave search"""
+    
+    search_agent = Agent(
+        name="Search Assistant",
+        instructions="""
+        You are a specialized Search Assistant. Your purpose is to help users find 
+        information on the web through search queries.
+
+        When handling search requests:
+        1. Identify the key information needs or questions
+        2. Formulate clear, specific search queries
+        3. Interpret search results and provide concise summaries
+        4. Include relevant sources/citations for all information
+        5. Present information in a structured, easy-to-understand format
+        
+        When searching:
+        - Request clarification if the search query is ambiguous
+        - Focus on recent results for time-sensitive queries
+        - Synthesize information from multiple sources when appropriate
+        - Always attribute information to its source
+        - Acknowledge when information is not available or unclear
+        
+        Important guidelines:
+        - Always cite your sources when providing information from search results
+        - Do not reproduce large amounts of copyrighted content from search results
+        - Limit direct quotes to 25 words or fewer
+        - For lengthy content, provide a brief summary and encourage the user to visit the source
+        - Never reproduce or generate song lyrics, even if asked
+        
+        Always provide properly cited responses with relevant details from search results.
+        After completing a search, summarize the key findings clearly.
+        """,
+        tools=[
+            WebSearchTool()
+        ],
+        model_settings=ModelSettings(tool_choice="auto"),
+    )
+    
+    return search_agent
+
 def create_calendar_agent():
     """Create a specialized Calendar agent"""
     
@@ -1367,8 +1409,9 @@ def create_personal_assistant():
     calendar_agent = create_calendar_agent()
     maps_agent = create_maps_agent()
     email_agent = create_email_agent()
+    search_agent = create_search_agent()
     
-    # Define handoff callbacks (optional)
+    # Define handoff callbacks
     def on_calendar_handoff(ctx: RunContextWrapper[Any]):
         print("[DEBUG] Handing off to Calendar Assistant...")
         
@@ -1377,6 +1420,9 @@ def create_personal_assistant():
         
     def on_email_handoff(ctx: RunContextWrapper[Any]):
         print("[DEBUG] Handing off to Email Assistant...")
+    
+    def on_search_handoff(ctx: RunContextWrapper[Any]):
+        print("[DEBUG] Handing off to Search Assistant...")
     
     # Create customized handoffs
     calendar_handoff = handoff(
@@ -1398,6 +1444,13 @@ def create_personal_assistant():
         on_handoff=on_email_handoff,
         tool_name_override="ask_email_assistant",
         tool_description_override="Hand off to the Email Assistant for email composition and sending"
+    )
+    
+    search_handoff = handoff(
+        agent=search_agent,
+        on_handoff=on_search_handoff,
+        tool_name_override="ask_search_assistant",
+        tool_description_override="Hand off to the Search Assistant for web searches and information retrieval"
     )
     
     # Create main personal assistant with handoffs
@@ -1427,12 +1480,20 @@ def create_personal_assistant():
            - Getting details about specific places
         
         3. EMAIL ASSISTANT:
-        Hand off to this assistant for:
-        - Composing and sending emails
-        - Creating formatted HTML emails
-        - Sending event invitations via email
-        - Looking up contacts by name
-        - Managing the address book (listing or adding contacts)
+           Hand off to this assistant for:
+           - Composing and sending emails
+           - Creating formatted HTML emails
+           - Sending event invitations via email
+           - Looking up contacts by name
+           - Managing the address book (listing or adding contacts)
+           
+        4. SEARCH ASSISTANT:
+           Hand off to this assistant for:
+           - Performing web searches
+           - Finding current information
+           - Researching topics or questions
+           - Finding facts or data
+           - Discovering recent news or events
         
         WHEN TO USE HANDOFFS:
         - When a request clearly belongs to one of the specialized assistants
@@ -1445,7 +1506,7 @@ def create_personal_assistant():
         
         Remember to be helpful, conversational, and responsive to the user's needs.
         """,
-        handoffs=[calendar_handoff, maps_handoff, email_handoff],
+        handoffs=[calendar_handoff, maps_handoff, email_handoff, search_handoff],
         model_settings=ModelSettings(tool_choice="auto"),
     )
     
