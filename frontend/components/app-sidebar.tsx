@@ -1,14 +1,15 @@
 "use client"
 
 import type * as React from "react"
-import { ArrowLeft, Phone, PieChart, Settings2 } from "lucide-react"
+import { ArrowLeft, Home, Settings } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 
 import { NavPlatform } from "./nav-main"
-import { NavConversations } from "./nav-projects"
+import { NavConversations } from "./nav-conversations"
 import { NavUser } from "./nav-user"
 import { TeamSwitcher } from "./team-switcher"
+import { BottomNavbar } from "./bottom-navbar"
 import {
   Sidebar,
   SidebarContent,
@@ -40,19 +41,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {
         title: "Dashboard",
         url: "/dashboard",
-        icon: PieChart,
+        icon: Home,
         isActive: pathname === "/dashboard",
-      },
-      {
-        title: "Calls",
-        url: "/calls",
-        icon: Phone,
-        isActive: pathname === "/calls",
       },
       {
         title: "Settings",
         url: "/settings",
-        icon: Settings2,
+        icon: Settings,
         isActive: pathname === "/settings",
       },
     ],
@@ -91,45 +86,48 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar collapsible="icon" className="bg-background dark:bg-black shadow-lg transition-all duration-200" {...props}>
-      <SidebarHeader className="mt-12 pb-16">
-        <TeamSwitcher />
-      </SidebarHeader>
-      <SidebarContent>
-        <NavConversations projects={data.projects} />
-        <NavPlatform items={data.navMain} />
-      </SidebarContent>
+    <>
+      <Sidebar collapsible="icon" className="hidden md:flex bg-background dark:bg-black shadow-lg transition-all duration-200" {...props}>
+        <SidebarHeader className="mt-12 pb-16">
+          <TeamSwitcher />
+        </SidebarHeader>
+        <SidebarContent>
+          <NavConversations projects={data.projects} />
+          <NavPlatform items={data.navMain} />
+        </SidebarContent>
 
-      {/* Custom button with SidebarTrigger for functionality */}
-      <div className="py-2 px-3">
-        {isCollapsed ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="mx-auto block w-fit">
-                  <SidebarTrigger className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
-                    <ArrowLeft className="h-4 w-4 rotate-180" />
-                  </SidebarTrigger>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Expand Sidebar</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          <SidebarTrigger className="hidden flex w-full items-center justify-start rounded-md px-1 py-1 hover:bg-accent hover:text-accent-foreground">
-            <span className="mr-2">Collapse Sidebar</span>
-            <ArrowLeft className="h-4 w-4" />
-          </SidebarTrigger>
-        )}
-      </div>
+        {/* Custom button with SidebarTrigger for functionality */}
+        <div className="py-2 px-3">
+          {isCollapsed ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="mx-auto block w-fit">
+                    <SidebarTrigger className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
+                      <ArrowLeft className="h-4 w-4 rotate-180" />
+                    </SidebarTrigger>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Expand Sidebar</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <SidebarTrigger className="hidden flex w-full items-center justify-start rounded-md px-1 py-1 hover:bg-accent hover:text-accent-foreground">
+              <span className="mr-2">Collapse Sidebar</span>
+              <ArrowLeft className="h-4 w-4" />
+            </SidebarTrigger>
+          )}
+        </div>
 
-      <SidebarFooter>
-        <NavUser />
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+        <SidebarFooter>
+          <NavUser />
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+      <BottomNavbar />
+    </>
   )
 }
 

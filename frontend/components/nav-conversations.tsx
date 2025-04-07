@@ -2,13 +2,12 @@
 
 import {
   ArrowUpRight,
-  MessageSquare,
+  MessageCircle,
   MoreHorizontal,
   PlusCircle,
   Trash2,
   PencilIcon,
   type LucideIcon,
-  Phone,
 } from "lucide-react"
 
 import {
@@ -42,7 +41,6 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { getUserConversations, deleteConversation, updateConversationName } from "@/lib/firebase/conversations"
-import { NewCallModal } from "@/components/new-call-modal"
 
 export function NavConversations() {
   const { isMobile } = useSidebar()
@@ -54,7 +52,6 @@ export function NavConversations() {
   const [newName, setNewName] = useState("")
   const [conversations, setConversations] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [showNewCallModal, setShowNewCallModal] = useState(false)
 
   // Fetch conversations when component mounts
   useEffect(() => {
@@ -172,16 +169,6 @@ export function NavConversations() {
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2"
-              onClick={() => setShowNewCallModal(true)}
-            >
-              <Phone className="h-4 w-4" />
-              <span>New Call</span>
-            </Button>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
 
@@ -202,7 +189,7 @@ export function NavConversations() {
           {isLoading ? (
             <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading conversations...</div>
           ) : conversations.length > 0 ? (
-            conversations.map((conversation) => (
+            conversations.slice(0, 6).map((conversation) => (
               <SidebarMenuItem key={conversation.id}>
                 <div 
                   className="flex items-center w-full"
@@ -230,7 +217,7 @@ export function NavConversations() {
                         hoveredItem === conversation.id && "text-foreground dark:text-foreground"
                       )}
                     >
-                      <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                      <MessageCircle className="h-4 w-4 flex-shrink-0" />
                       <div className="relative ml-2 w-full max-w-[180px] overflow-hidden">
                         <span className="block whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground 99.5% to-transparent [background-size:101%_100%]">{conversation.name}</span>
                       </div>
@@ -325,7 +312,6 @@ export function NavConversations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <NewCallModal open={showNewCallModal} onOpenChange={setShowNewCallModal} />
     </>
   )
 }

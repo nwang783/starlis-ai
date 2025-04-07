@@ -18,12 +18,6 @@ const routes = [
     color: "text-sky-500",
   },
   {
-    label: "Calls",
-    icon: Phone,
-    href: "/calls",
-    color: "text-violet-500",
-  },
-  {
     label: "Assistant",
     icon: MessageSquare,
     href: "/assistant",
@@ -119,13 +113,6 @@ export default function Sidebar() {
               </div>
             </CardContent>
           </Card>
-          <Button
-            variant="outline"
-            className="w-full mt-4 border-black text-black hover:bg-black hover:text-white dark:border-0 dark:bg-neutral-800 dark:text-white dark:hover:bg-neutral-700"
-          >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            New Chat
-          </Button>
         </div>
       </aside>
     </>
