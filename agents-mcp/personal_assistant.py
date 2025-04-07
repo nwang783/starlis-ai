@@ -13,6 +13,7 @@ import re
 from agents import Agent, Runner, function_tool, gen_trace_id, trace, handoff, RunContextWrapper
 from agents.model_settings import ModelSettings
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
+from canvas_agent import get_canvas_handoff
 
 # Google API imports
 from google.oauth2.credentials import Credentials
@@ -1407,11 +1408,10 @@ def create_search_agent():
         
         You have access to these tools:
         - brave_search: For general searches using US as the default location
-        - brave_search_with_country: For searches where the user wants results from a specific country
         - fetch_webpage_content: For fetching the actual content from a webpage URL
         
         SEARCH WORKFLOW:
-        1. First, use brave_search or brave_search_with_country to find relevant web pages
+        1. First, use brave_search or brave_search to find relevant web pages
         2. When you need more detailed information, use fetch_webpage_content on the most relevant URL
         3. Extract and summarize the key information from the fetched webpage content
         
@@ -1579,10 +1579,16 @@ def create_personal_assistant():
     maps_agent = create_maps_agent()
     email_agent = create_email_agent()
     search_agent = create_search_agent()
+
+    # Create Canvas agent
+    canvas_handoff = get_canvas_handoff()
     
     # Define handoff callbacks
     def on_calendar_handoff(ctx: RunContextWrapper[Any]):
         print("[DEBUG] Handing off to Calendar Assistant...")
+
+    def on_canvas_handoff(ctx: RunContextWrapper[Any]):
+        print("[DEBUG] Handing off to Canvas Assistant...")
         
     def on_maps_handoff(ctx: RunContextWrapper[Any]):
         print("[DEBUG] Handing off to Maps Assistant...")
@@ -1663,6 +1669,14 @@ def create_personal_assistant():
            - Researching topics or questions
            - Finding facts or data
            - Discovering recent news or events
+           
+        5. CANVAS ASSISTANT:
+           Hand off to this assistant for:
+           - Checking Canvas course information
+           - Viewing assignment details and deadlines
+           - Accessing submission feedback
+           - Retrieving course materials and discussions
+           - Checking grades and academic progress
         
         WHEN TO USE HANDOFFS:
         - When a request clearly belongs to one of the specialized assistants
@@ -1675,7 +1689,7 @@ def create_personal_assistant():
         
         Remember to be helpful, conversational, and responsive to the user's needs.
         """,
-        handoffs=[calendar_handoff, maps_handoff, email_handoff, search_handoff],
+        handoffs=[calendar_handoff, maps_handoff, email_handoff, search_handoff, canvas_handoff],
         model_settings=ModelSettings(tool_choice="auto"),
     )
     
