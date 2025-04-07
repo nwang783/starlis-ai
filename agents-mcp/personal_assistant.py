@@ -13,7 +13,10 @@ import re
 from agents import Agent, Runner, function_tool, gen_trace_id, trace, handoff, RunContextWrapper
 from agents.model_settings import ModelSettings
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
+
+# Agent imports
 from canvas_agent import get_canvas_handoff
+from gradescope_agent import get_gradescope_handoff
 
 # Google API imports
 from google.oauth2.credentials import Credentials
@@ -1580,8 +1583,9 @@ def create_personal_assistant():
     email_agent = create_email_agent()
     search_agent = create_search_agent()
 
-    # Create Canvas agent
+    # Create handoff agents
     canvas_handoff = get_canvas_handoff()
+    gradescope_handoff = get_gradescope_handoff()
     
     # Define handoff callbacks
     def on_calendar_handoff(ctx: RunContextWrapper[Any]):
@@ -1678,6 +1682,13 @@ def create_personal_assistant():
            - Retrieving course materials and discussions
            - Checking grades and academic progress
         
+        6. GRADESCOPE ASSISTANT:
+            Hand off to this assistant for:
+            - Checking Gradescope course information
+            - Viewing assignment details and deadlines
+            - Checking submission status and feedback
+            - Reviewing grades and academic progress
+        
         WHEN TO USE HANDOFFS:
         - When a request clearly belongs to one of the specialized assistants
         - When a task requires specific tools that only a specialized assistant has
@@ -1689,7 +1700,7 @@ def create_personal_assistant():
         
         Remember to be helpful, conversational, and responsive to the user's needs.
         """,
-        handoffs=[calendar_handoff, maps_handoff, email_handoff, search_handoff, canvas_handoff],
+        handoffs=[calendar_handoff, maps_handoff, email_handoff, search_handoff, canvas_handoff, gradescope_handoff],
         model_settings=ModelSettings(tool_choice="auto"),
     )
     
