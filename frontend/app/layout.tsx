@@ -1,12 +1,11 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
 import { ToastProvider } from "@/components/toast-provider"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Starlis - Your Intelligent Assistant",
@@ -25,8 +24,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className={GeistSans.className}>
+      <head>
+        <style>{`
+          :root {
+            --font-geist-sans: ${GeistSans.style.fontFamily};
+            --font-geist-mono: ${GeistMono.style.fontFamily};
+          }
+        `}</style>
+      </head>
+      <body>
         <ThemeProvider 
           attribute="class" 
           defaultTheme="system" 

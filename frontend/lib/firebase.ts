@@ -457,5 +457,11 @@ const markAccountForDeletion = async (userId: string) => {
 
 // Remove the deleteUserData function since we're not using it anymore
 
+export type UserData = {
+  email: string
+  firstName?: string
+  lastName?: string
+}
+
 export { auth, db }
 

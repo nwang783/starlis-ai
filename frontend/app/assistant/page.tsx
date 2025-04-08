@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { AppSidebar } from "../../components/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Paperclip, Send, Sun, Calendar, Mail, Phone, Copy, Volume2, RefreshCw, Square, Globe, Plus, LightbulbIcon } from "lucide-react"
+import { Paperclip, Send, Sun, Calendar, Mail, Phone, Copy, Volume2, RefreshCw, Square, Globe, Plus, LightbulbIcon, ArrowUp } from "lucide-react"
 import { cn, extractPhoneNumber } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { saveChatMessage, getChatMessages, createNewChat } from "@/lib/firebase"
@@ -76,6 +76,7 @@ export default function AssistantPage() {
   const { user, userData } = useAuth()
   const searchParams = useSearchParams()
   const chatId = searchParams.get("chat")
+  const [isMobileMode, setIsMobileMode] = useState(false)
 
   const [messages, setMessages] = useState<any[]>([])
   const [input, setInput] = useState("")
@@ -234,6 +235,19 @@ export default function AssistantPage() {
       mainElement.addEventListener('scroll', handleScroll)
       return () => mainElement.removeEventListener('scroll', handleScroll)
     }
+  }, [])
+
+  useEffect(() => {
+    // Check if we're in mobile mode (sidebar collapsed and viewport is small)
+    const checkMobileMode = () => {
+      const isSmallScreen = window.innerWidth < 768 // md breakpoint
+      const isCollapsed = document.documentElement.getAttribute('data-sidebar-collapsed') === 'true'
+      setIsMobileMode(isCollapsed && isSmallScreen)
+    }
+
+    checkMobileMode()
+    window.addEventListener('resize', checkMobileMode)
+    return () => window.removeEventListener('resize', checkMobileMode)
   }, [])
 
   // Handle sending a message
@@ -584,14 +598,18 @@ export default function AssistantPage() {
         <NoiseTexture className="flex-1 flex flex-col h-full w-full bg-background dark:bg-neutral-950">
           <div className="flex h-screen flex-col">
             {currentChatId && messages.length > 0 && (
-              <ChatHeader
-                conversationId={currentChatId}
-                initialTitle={conversationTitle || "New conversation"}
-                onDelete={handleDeleteConversation}
-                onRename={handleRenameConversation}
-              />
+              <div className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-sm transition-all duration-300">
+                <div className="h-16 flex items-center px-4">
+                  <ChatHeader
+                    conversationId={currentChatId}
+                    initialTitle={conversationTitle || "New conversation"}
+                    onDelete={handleDeleteConversation}
+                    onRename={handleRenameConversation}
+                  />
+                </div>
+              </div>
             )}
-            <main ref={mainRef} className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 relative">
+            <main ref={mainRef} className="flex-1 p-4 sm:p-6 lg:p-8 relative">
               {!isChatExpanded && (
                 <div 
                   className="absolute inset-x-0 top-0 z-30 pointer-events-none transition-opacity duration-200"
@@ -605,7 +623,7 @@ export default function AssistantPage() {
               <div className={`transition-opacity duration-500 ${isChatExpanded ? "opacity-0" : "opacity-100"}`}>
                 <TimeBasedArt />
               </div>
-              <div className={`mx-auto max-w-3xl relative z-10 ${isChatExpanded ? "" : "pt-32 mt-16"}`}>
+              <div className={`mx-auto max-w-4xl relative z-10 ${isChatExpanded ? "" : "pt-32 mt-16"}`}>
                 {!isChatExpanded ? (
                   <div className="space-y-12 relative z-10 mt-8">
                     <div className="flex items-center gap-3">
@@ -796,199 +814,151 @@ export default function AssistantPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="border-0 bg-transparent shadow-none h-full flex flex-col relative">
-                    {/* Messages container */}
-                    <div
-                      className="flex-1 flex flex-col gap-6 pb-24 overflow-y-auto justify-end"
-                      style={{
-                        minHeight: "calc(100vh - 180px)",
-                        marginBottom: "70px",
-                        width: "115%",
-                        marginLeft: "-7.5%",
-                      }}
-                    >
-                      {messages.map((message, index) => (
-                        <MessageContainer
-                          key={message.id}
-                          message={message}
-                          userData={userData || undefined}
-                          onRegenerate={() => handleRegenerateMessage(message.id)}
-                          isRegenerating={regeneratingIndex === index}
-                          onEditEmail={() => handleEditEmail(message.id)}
-                          onSendEmail={() => handleSendEmail(message.id)}
-                          onEndCall={() => handleEndCall(message.id)}
-                          onReturnToChat={handleReturnToChat}
-                        />
-                      ))}
+                  <div className="flex flex-col h-[calc(100vh-4rem)]">
+                    {/* Messages Area */}
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="flex flex-col gap-6 py-8 px-4">
+                        {messages.map((message, index) => (
+                          <MessageContainer
+                            key={message.id}
+                            message={message}
+                            userData={userData || undefined}
+                            onRegenerate={() => handleRegenerateMessage(message.id)}
+                            isRegenerating={regeneratingIndex === index}
+                            onEditEmail={() => handleEditEmail(message.id)}
+                            onSendEmail={() => handleSendEmail(message.id)}
+                            onEndCall={() => handleEndCall(message.id)}
+                            onReturnToChat={handleReturnToChat}
+                          />
+                        ))}
 
-                      {messages.length === 0 && isChatExpanded && (
-                        <div className="flex gap-3 justify-start">
-                          <Avatar className="h-8 w-8 [&>img]:invert-0 dark:[&>img]:invert">
-                            <AvatarImage src="/starlis_logo.svg" alt="Starlis Assistant" />
-                            <AvatarFallback>VX</AvatarFallback>
-                          </Avatar>
-                        </div>
-                      )}
+                        {messages.length === 0 && isChatExpanded && null}
 
-                      {isLoading && (
-                        <div className="flex gap-3">
-                          <Avatar className="h-8 w-8 [&>img]:invert-0 dark:[&>img]:invert">
-                            <AvatarImage src="/starlis_logo.svg" alt="Starlis Assistant" />
-                            <AvatarFallback>VX</AvatarFallback>
-                          </Avatar>
-                          <div className="rounded-2xl bg-muted text-foreground p-4">
-                            <div className="text-base animate-pulse flex items-center">
-                              <span>Thinking</span>
-                              <span className="dots w-[24px] overflow-hidden inline-block">
-                                <span className="animate-dots inline-block">&nbsp;...</span>
-                              </span>
-                              <style jsx>{`
-                                .dots {
-                                  display: inline-block;
-                                }
-                                .animate-dots {
-                                  display: inline-block;
-                                  animation: dots 1.4s steps(4, jump-none) infinite;
-                                }
-                                @keyframes dots {
-                                  0% { transform: translateX(-24px); }
-                                  25% { transform: translateX(-18px); }
-                                  50% { transform: translateX(-12px); }
-                                  75% { transform: translateX(-6px); }
-                                  100% { transform: translateX(-24px); }
-                                }
-                                .animate-pulse {
-                                  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-                                }
-                                @keyframes pulse {
-                                  0%, 100% {
-                                    opacity: 1;
-                                  }
-                                  50% {
-                                    opacity: .5;
-                                  }
-                                }
-                              `}</style>
-                            </div>
+                        {isLoading && (
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
+                            <span>Thinking</span>
                           </div>
-                        </div>
-                      )}
+                        )}
+                        <div ref={messagesEndRef} />
+                      </div>
                     </div>
-                    <div ref={messagesEndRef} />
 
-                    {/* Message Input */}
-                    <div className="mx-auto max-w-3xl fixed bottom-0 z-10 mb-6 w-full">
-                      <Card className="rounded-xl overflow-visible bg-background/30 border-0 shadow-lg backdrop-blur-sm w-full">
-                        <div className="relative p-2">
-                          <div className="relative">
-                            <Textarea
-                              placeholder="Ask anything"
-                              value={input}
-                              onChange={(e) => {
-                                setInput(e.target.value)
-                                // Auto-resize the textarea
-                                e.target.style.height = 'auto'
-                                e.target.style.height = e.target.scrollHeight + 'px'
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                  e.preventDefault()
-                                  if (!isLoading && !typingMessageIndex) {
+                    {/* Input Area - Fixed at bottom with proper spacing */}
+                    <div className={cn(
+                      "w-full bg-background/80 backdrop-blur-sm",
+                      isMobileMode ? "pb-32" : "pb-6"
+                    )}>
+                      <div className="max-w-4xl mx-auto px-4">
+                        <Card className="rounded-xl overflow-visible bg-background/30 border-0 shadow-lg backdrop-blur-sm">
+                          <div className="p-2">
+                            <div className="relative">
+                              <Textarea
+                                placeholder="Ask anything"
+                                value={input}
+                                onChange={(e) => {
+                                  setInput(e.target.value)
+                                  e.target.style.height = 'auto'
+                                  e.target.style.height = e.target.scrollHeight + 'px'
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault()
+                                    if (!isLoading && !typingMessageIndex) {
+                                      handleSendMessage(input)
+                                    }
+                                  }
+                                }}
+                                className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden w-full"
+                                disabled={typingMessageIndex !== null}
+                                rows={1}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2 mt-2">
+                              <TooltipProvider delayDuration={0}>
+                                <div className="flex items-center gap-2">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 rounded-full hover:bg-muted/80"
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" sideOffset={5}>
+                                      <p>Attach files</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={cn(
+                                          "h-8 w-8 rounded-full hover:bg-muted/80 transition-colors",
+                                          isWebSearchEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                                        )}
+                                        onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
+                                      >
+                                        <Globe className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" sideOffset={5}>
+                                      <p>Search the internet</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className={cn(
+                                          "h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5 transition-colors",
+                                          isReasonEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                                        )}
+                                        onClick={() => setIsReasonEnabled(!isReasonEnabled)}
+                                      >
+                                        <LightbulbIcon className="h-4 w-4" />
+                                        <span className="text-sm">Reason</span>
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" sideOffset={5}>
+                                      <p>Use StarlisThink</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </TooltipProvider>
+
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20"
+                                onClick={() => {
+                                  if (isLoading) {
+                                    setIsLoading(false)
+                                    setMessages(prev => prev.slice(0, -1))
+                                  } else if (typingMessageIndex !== null) {
+                                    setTypingMessageIndex(null)
+                                  } else {
                                     handleSendMessage(input)
                                   }
-                                }
-                              }}
-                              className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden pr-12"
-                              disabled={typingMessageIndex !== null}
-                              rows={1}
-                            />
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-primary/10 hover:bg-primary/20"
-                              onClick={() => {
-                                if (isLoading) {
-                                  // Cancel the current generation
-                                  setIsLoading(false)
-                                  // Remove the last message (the one being generated)
-                                  setMessages(prev => prev.slice(0, -1))
-                                } else if (typingMessageIndex !== null) {
-                                  // Skip the typewriter animation for the current message
-                                  setTypingMessageIndex(null)
-                                } else {
-                                  handleSendMessage(input)
-                                }
-                              }}
-                              disabled={!input.trim() && !isLoading && typingMessageIndex === null}
-                            >
-                              {isLoading || typingMessageIndex !== null ? (
-                                <Square className="h-5 w-5" />
-                              ) : (
-                                <Send className="h-5 w-5" />
-                              )}
-                            </Button>
+                                }}
+                                disabled={!input.trim() && !isLoading && typingMessageIndex === null}
+                              >
+                                {isLoading || typingMessageIndex !== null ? (
+                                  <Square className="h-4 w-4" />
+                                ) : (
+                                  <ArrowUp className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-2">
-                            <TooltipProvider delayDuration={0}>
-                              <div className="flex items-center gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 rounded-full hover:bg-muted/80"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" sideOffset={5}>
-                                    <p>Attach files</p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className={cn(
-                                        "h-8 w-8 rounded-full hover:bg-muted/80 transition-colors",
-                                        isWebSearchEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                      )}
-                                      onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
-                                    >
-                                      <Globe className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" sideOffset={5}>
-                                    <p>Search the internet</p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className={cn(
-                                        "h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5 transition-colors",
-                                        isReasonEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                      )}
-                                      onClick={() => setIsReasonEnabled(!isReasonEnabled)}
-                                    >
-                                      <LightbulbIcon className="h-4 w-4" />
-                                      <span className="text-sm">Reason</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" sideOffset={5}>
-                                    <p>Use StarlisThink</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </TooltipProvider>
-                          </div>
-                        </div>
-                      </Card>
+                        </Card>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -17,6 +17,8 @@ import {
   User,
   Bell,
   Sun,
+  MessageCircle,
+  PlusCircle,
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -25,6 +27,8 @@ import { useAuth } from "@/contexts/auth-context"
 import { createNewChat } from "@/lib/firebase"
 import { getUpcomingMeetings, type Meeting } from "@/lib/placeholders"
 import { TimeBasedArt } from "@/components/time-based-art"
+import { getUserConversations } from "@/lib/firebase/conversations"
+import { Conversation, TextMessage, PhoneMessage, EmailMessage, CodeboxMessage } from "@/lib/types"
 
 // Sample call history data - in a real app, this would come from your backend
 const callHistory = [
@@ -98,6 +102,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([])
+  const [recentConversations, setRecentConversations] = useState<Conversation[]>([])
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -117,6 +122,10 @@ export default function DashboardPage() {
         // Load upcoming meetings
         const meetings = await getUpcomingMeetings(user.uid, 7) // Get meetings for next 7 days
         setUpcomingMeetings(meetings)
+
+        // Load recent conversations
+        const conversations = await getUserConversations(user.uid)
+        setRecentConversations(conversations.slice(0, 5)) // Show only the 5 most recent conversations
       } catch (error) {
         console.error("Error loading dashboard data:", error)
       } finally {
@@ -201,17 +210,20 @@ export default function DashboardPage() {
   }
 
   // Format message time
-  const formatMessageTime = (timestamp: Date) => {
+  const formatMessageTime = (timestamp: string | Date) => {
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
+    if (isNaN(date.getTime())) return "Just now"
+
     const today = new Date()
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
 
-    if (timestamp.toDateString() === today.toDateString()) {
-      return timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    } else if (timestamp.toDateString() === yesterday.toDateString()) {
+    if (date.toDateString() === today.toDateString()) {
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    } else if (date.toDateString() === yesterday.toDateString()) {
       return "Yesterday"
     } else {
-      return timestamp.toLocaleDateString([], { month: "short", day: "numeric" })
+      return date.toLocaleDateString([], { month: "short", day: "numeric" })
     }
   }
 
@@ -238,7 +250,7 @@ export default function DashboardPage() {
         <div className="absolute inset-0 -z-1">
           <TimeBasedArt />
         </div>
-        <div className="flex flex-1 flex-col gap-6 p-6 pt-[12rem] relative z-10">
+        <div className="flex flex-1 flex-col gap-6 p-6 pt-[12rem] relative z-10 max-w-[calc(100vw-16rem)]">
           {/* Greeting Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -247,25 +259,23 @@ export default function DashboardPage() {
                 {getGreeting()}, {userData?.firstName || "there"}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => router.push("/assistant")}>
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Assistant
-              </Button>
-            </div>
           </div>
 
-          {/* Unread Messages Section */}
+          {/* Recent Conversations Section */}
           <Card className="col-span-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Unread Messages</CardTitle>
-                <CardDescription>Your latest unread emails and messages</CardDescription>
+                <CardTitle>Recent Conversations</CardTitle>
+                <CardDescription>Your latest conversations with the assistant</CardDescription>
               </div>
-              <Button variant="outline" size="sm">
-                <Mail className="mr-2 h-4 w-4" />
-                View All Messages
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => router.push("/assistant")}>
+                  <PlusCircle className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => router.push("/conversations")}>
+                  View all
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -280,41 +290,45 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              ) : unreadMessages.length > 0 ? (
+              ) : recentConversations.length > 0 ? (
                 <ScrollArea className="h-[220px] pr-4">
                   <div className="space-y-3">
-                    {unreadMessages.map((message) => (
+                    {recentConversations.map((conversation) => (
                       <a
-                        key={message.id}
-                        href="#" // In a real app, this would link to the message
+                        key={conversation.id}
+                        href={`/assistant?chat=${conversation.id}`}
                         className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors group cursor-pointer block"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          // In a real app, this would open the message
-                          window.open("#", "_blank")
-                        }}
                       >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarFallback className="bg-primary/10 text-primary">
-                              {getInitials(message.sender)}
+                              {conversation.name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{message.sender}</h4>
-                              {message.isImportant && (
-                                <span className="rounded-full bg-red-500 p-1">
-                                  <Bell className="h-3 w-3 text-white" />
-                                </span>
-                              )}
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-medium truncate">{conversation.name}</h4>
+                            <div className="text-xs text-muted-foreground line-clamp-1">
+                              {(() => {
+                                const lastMessage = conversation.messages?.[conversation.messages.length - 1]
+                                if (!lastMessage) return "No messages yet"
+                                if (lastMessage.type === 'text') {
+                                  return (lastMessage as TextMessage).content
+                                } else if (lastMessage.type === 'phone') {
+                                  return `Phone call with ${(lastMessage as PhoneMessage).contactName || (lastMessage as PhoneMessage).phoneNumber}`
+                                } else if (lastMessage.type === 'email') {
+                                  return `Email: ${(lastMessage as EmailMessage).subject}`
+                                } else if (lastMessage.type === 'codebox') {
+                                  return `Code: ${(lastMessage as CodeboxMessage).content}`
+                                }
+                                return "No messages yet"
+                              })()}
                             </div>
-                            <div className="font-medium text-sm">{message.subject}</div>
-                            <div className="text-xs text-muted-foreground line-clamp-1">{message.preview}</div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm text-muted-foreground">{formatMessageTime(message.timestamp)}</div>
+                        <div className="text-right flex-shrink-0 ml-4">
+                          <div className="text-sm text-muted-foreground whitespace-nowrap">
+                            {formatMessageTime(new Date(conversation.timeLastModified || conversation.timeCreated))}
+                          </div>
                         </div>
                       </a>
                     ))}
@@ -322,8 +336,8 @@ export default function DashboardPage() {
                 </ScrollArea>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <Mail className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                  <p>No unread messages</p>
+                  <MessageCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                  <p>No recent conversations</p>
                 </div>
               )}
             </CardContent>
@@ -436,83 +450,11 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Call History Section - Full Width */}
-            <Card className="md:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Recent Calls</CardTitle>
-                  <CardDescription>Your incoming and outgoing calls</CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => router.push("/calls")}>
-                  <PhoneCall className="mr-2 h-4 w-4" />
-                  View All Calls
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[220px] pr-4">
-                  <div className="space-y-3">
-                    {callHistory.map((call) => (
-                      <div
-                        key={call.id}
-                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
-                        onClick={() => router.push(`/calls/${call.id}`)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="rounded-full bg-primary/10 p-2">
-                            {call.type === "incoming" ? (
-                              <PhoneIncoming className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <PhoneOutgoing className="h-4 w-4 text-blue-500" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{call.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {call.type === "incoming" ? "Incoming" : "Outgoing"} • {call.duration}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm text-muted-foreground">{formatCallTime(call.timestamp)}</div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                <Phone className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleCallBack(call.name, "assistant")
-                                }}
-                              >
-                                <MessageSquare className="mr-2 h-4 w-4" />
-                                Call via Assistant
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleCallBack(call.name, "personal")
-                                }}
-                              >
-                                <Phone className="mr-2 h-4 w-4" />
-                                Call via Personal
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
   )
 }
+
 

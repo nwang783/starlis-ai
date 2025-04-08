@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { MoreVertical, Pencil, Trash2, List } from "lucide-react"
+import { MoreVertical, Pencil, Trash2, List, ArrowLeft, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -39,15 +39,27 @@ export function ChatHeader({ conversationId, initialTitle, onDelete, onRename }:
     setIsEditing(false)
   }
 
-  const handleDelete = async () => {
-    await onDelete()
-    router.push("/assistant")
-  }
-
   return (
-    <div className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 animate-in slide-in-from-top-4 duration-300">
+    <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => {
+            const previousPath = document.referrer
+            if (previousPath.includes('/conversations')) {
+              router.push('/conversations')
+            } else {
+              router.push('/assistant')
+            }
+          }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+
+        {/* Title and Menu - Left aligned on desktop, centered on mobile */}
+        <div className="hidden md:flex items-center gap-2">
           <div className="text-lg font-semibold">
             {currentTitle}
           </div>
@@ -96,44 +108,66 @@ export function ChatHeader({ conversationId, initialTitle, onDelete, onRename }:
                   </div>
                 </DialogContent>
               </Dialog>
-
-              <Dialog>
-                <DialogTrigger asChild>
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <Trash2 className="mr-2 h-4 w-4 text-destructive" />
-                    Delete
-                  </DropdownMenuItem>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Delete conversation</DialogTitle>
-                  </DialogHeader>
-                  <div className="py-4">
-                    <p>Are you sure you want to delete this conversation? This action cannot be undone.</p>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <DialogClose asChild>
-                      <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button variant="destructive" onClick={handleDelete}>
-                      Delete
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="gap-2"
-        onClick={() => router.push("/conversations")}
-      >
-        <List className="h-4 w-4" />
-        All Conversations
-      </Button>
+
+      {/* Mobile layout - Centered title and right-aligned menu */}
+      <div className="md:hidden flex-1 flex items-center justify-between">
+        <div className="flex-1 text-center">
+          <div className="text-lg font-semibold">
+            {currentTitle}
+          </div>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <Dialog open={isEditing} onOpenChange={setIsEditing}>
+              <DialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => {
+                  e.preventDefault()
+                  setIsEditing(true)
+                }}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Rename
+                </DropdownMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Rename conversation</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      placeholder="Enter conversation name"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleRename()
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsEditing(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleRename}>Save</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   )
 } 

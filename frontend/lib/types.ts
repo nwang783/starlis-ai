@@ -35,7 +35,20 @@ export interface CodeboxMessage extends BaseMessage {
   language?: string
 }
 
-export type Message = TextMessage | PhoneMessage | EmailMessage | CodeboxMessage
+export type Message = {
+  id: string
+  type: 'text' | 'email' | 'codebox' | 'phone'
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+  isNew?: boolean
+  callStatus?: 'in-progress' | 'completed'
+  contactName?: string
+  phoneNumber?: string
+  subject?: string
+  code?: string
+  language?: string
+}
 
 export interface Conversation {
   id: string
