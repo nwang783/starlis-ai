@@ -593,27 +593,27 @@ export default function AssistantPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full overscroll-none overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 flex flex-col h-full transition-all duration-300 ease-in-out">
-          <NoiseTexture className="flex-1 flex flex-col h-full w-full bg-background dark:bg-neutral-950">
-            {/* Fixed Header */}
-            {currentChatId && messages.length > 0 && (
-              <div className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-sm transition-all duration-300">
-                <div className="h-16 flex items-center px-4">
-                  <ChatHeader
-                    conversationId={currentChatId}
-                    initialTitle={conversationTitle || "New conversation"}
-                    onDelete={handleDeleteConversation}
-                    onRename={handleRenameConversation}
-                  />
+        <div className="flex-1 flex flex-col h-full transition-all duration-300 ease-in-out overscroll-none overflow-hidden">
+          <NoiseTexture className="flex-1 flex flex-col h-full w-full bg-background dark:bg-neutral-950 overscroll-none overflow-hidden">
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col h-full overscroll-none overflow-hidden">
+              {/* Fixed Header - Always at top */}
+              {currentChatId && messages.length > 0 && (
+                <div className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-sm border-b">
+                  <div className="h-16 flex items-center px-4">
+                    <ChatHeader
+                      conversationId={currentChatId}
+                      initialTitle={conversationTitle || "New conversation"}
+                      onDelete={handleDeleteConversation}
+                      onRename={handleRenameConversation}
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Main Content Area with Fixed Input */}
-            <div className="flex-1 flex flex-col h-[calc(100vh-4rem)]">
-              <main ref={mainRef} className="flex-1 flex flex-col overflow-hidden">
+              <main ref={mainRef} className="flex-1 flex flex-col overscroll-none overflow-hidden">
                 {!isChatExpanded && (
                   <div 
                     className="absolute inset-x-0 top-0 z-30 pointer-events-none transition-opacity duration-300"
@@ -627,7 +627,7 @@ export default function AssistantPage() {
                 <div className={`transition-all duration-300 ease-in-out ${isChatExpanded ? "opacity-0" : "opacity-100"}`}>
                   <TimeBasedArt />
                 </div>
-                <div className={`flex-1 flex flex-col mx-auto w-full relative z-10 transition-all duration-300 ease-in-out ${isChatExpanded ? "" : "pt-32 mt-16"}`}>
+                <div className={`flex-1 flex flex-col mx-auto w-full relative z-10 transition-all duration-300 ease-in-out overscroll-none overflow-hidden ${isChatExpanded ? "" : "pt-32 mt-16"}`}>
                   {!isChatExpanded ? (
                     <div className="space-y-12 relative z-10 mt-8 transition-all duration-300 ease-in-out">
                       <div className="flex items-center gap-3">
@@ -818,10 +818,10 @@ export default function AssistantPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col h-full min-h-0">
+                    <div className="flex flex-col h-full overscroll-none overflow-hidden">
                       {/* Messages Area */}
-                      <div className="flex-1 overflow-y-auto min-h-0">
-                        <div className="flex flex-col gap-6 py-12 px-8 max-w-4xl mx-auto">
+                      <div className="flex-1 overflow-y-auto overscroll-none">
+                        <div className="flex flex-col gap-6 py-12 px-8 max-w-4xl mx-auto overscroll-none">
                           {messages.map((message, index) => (
                             <MessageContainer
                               key={message.id}
@@ -853,9 +853,9 @@ export default function AssistantPage() {
                 </div>
               </main>
 
-              {/* Fixed Input Area */}
+              {/* Fixed Input Area - Always at bottom */}
               <div className={cn(
-                "w-full bg-background/80 backdrop-blur-sm border-t transition-all duration-300 ease-in-out",
+                "sticky bottom-0 w-full bg-background/80 backdrop-blur-sm z-50",
                 isMobileMode ? "pb-32" : "pb-6"
               )}>
                 <div className="w-full px-12 pt-4 max-w-3xl mx-auto">
