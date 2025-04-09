@@ -829,6 +829,7 @@ export default function AssistantPage() {
                             onSendEmail={() => handleSendEmail(message.id)}
                             onEndCall={() => handleEndCall(message.id)}
                             onReturnToChat={handleReturnToChat}
+                            isLastMessage={index === messages.length - 1}
                           />
                         ))}
 
