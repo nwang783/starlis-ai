@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { MoreVertical, Pencil, Trash2, List, ArrowLeft, Check } from "lucide-react"
+import { MoreVertical, Pencil, Trash2, List, ArrowLeft, Check, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -120,53 +120,65 @@ export function ChatHeader({ conversationId, initialTitle, onDelete, onRename }:
             {currentTitle}
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <Dialog open={isEditing} onOpenChange={setIsEditing}>
-              <DialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => {
-                  e.preventDefault()
-                  setIsEditing(true)
-                }}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Rename
-                </DropdownMenuItem>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Rename conversation</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
-                      placeholder="Enter conversation name"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          handleRename()
-                        }
-                      }}
-                    />
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Menu className="h-4 w-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => {
+                    e.preventDefault()
+                    setIsEditing(true)
+                  }}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Rename
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Rename conversation</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">Name</Label>
+                      <Input
+                        id="name"
+                        value={newTitle}
+                        onChange={(e) => setNewTitle(e.target.value)}
+                        placeholder="Enter conversation name"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleRename()
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleRename}>Save</Button>
+                    </div>
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsEditing(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleRename}>Save</Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                </DialogContent>
+              </Dialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Desktop sidebar button */}
+      <div className="hidden md:block">
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Menu className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   )

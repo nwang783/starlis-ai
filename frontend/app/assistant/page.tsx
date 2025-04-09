@@ -593,13 +593,14 @@ export default function AssistantPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <NoiseTexture className="flex-1 flex flex-col h-full w-full bg-background dark:bg-neutral-950">
-          <div className="flex h-screen flex-col">
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col h-full transition-all duration-300 ease-in-out">
+          <NoiseTexture className="flex-1 flex flex-col h-full w-full bg-background dark:bg-neutral-950">
+            {/* Fixed Header - Always at top */}
             {currentChatId && messages.length > 0 && (
-              <div className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-sm transition-all duration-300">
-                <div className="h-16 flex items-center px-4">
+              <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-sm border-b">
+                <div className="h-full flex items-center px-4">
                   <ChatHeader
                     conversationId={currentChatId}
                     initialTitle={conversationTitle || "New conversation"}
@@ -609,273 +610,71 @@ export default function AssistantPage() {
                 </div>
               </div>
             )}
-            <main ref={mainRef} className="flex-1 p-4 sm:p-6 lg:p-8 relative overflow-hidden">
-              {!isChatExpanded && (
-                <div 
-                  className="absolute inset-x-0 top-0 z-30 pointer-events-none transition-opacity duration-200"
-                  style={{ 
-                    opacity: scrollOpacity,
-                    background: 'linear-gradient(to bottom, var(--background) 0%, var(--background) 60%, transparent 100%)',
-                    height: '120px'
-                  }}
-                />
-              )}
-              <div className={`transition-opacity duration-500 ${isChatExpanded ? "opacity-0" : "opacity-100"}`}>
-                <TimeBasedArt />
-              </div>
-              <div className={`mx-auto max-w-4xl relative z-10 ${isChatExpanded ? "" : "pt-32 mt-16"}`}>
-                {!isChatExpanded ? (
-                  <div className="space-y-12 relative z-10 mt-8">
-                    <div className="flex items-center gap-3">
-                      <Sun className="h-8 w-8 text-orange-400" />
-                      <h1 className="text-4xl font-semibold text-black dark:text-white">
-                        {getGreeting()}, {userData?.firstName || "there"}
-                      </h1>
-                    </div>
 
-                    <Card className="border-border bg-card/50 p-4">
-                      <div className="space-y-4">
-                        <div className="border rounded-lg border-border p-3 space-y-3">
-                          <div className="relative">
-                            <Textarea
-                              placeholder="How can I help you today?"
-                              value={input}
-                              onChange={(e) => {
-                                setInput(e.target.value)
-                                // Auto-resize the textarea
-                                e.target.style.height = 'auto'
-                                e.target.style.height = e.target.scrollHeight + 'px'
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                  e.preventDefault()
-                                  setIsChatExpanded(true)
-                                  handleSendMessage(input)
-                                }
-                              }}
-                              className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden pr-12"
-                              rows={1}
-                            />
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-primary/10 hover:bg-primary/20"
-                              onClick={() => {
-                                setIsChatExpanded(true)
-                                handleSendMessage(input)
-                              }}
-                              disabled={!input.trim() || isLoading}
-                            >
-                              <Send className="h-5 w-5" />
-                            </Button>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <TooltipProvider delayDuration={0}>
-                              <div className="flex items-center gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 rounded-full hover:bg-muted/80"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" sideOffset={5}>
-                                    <p>Attach files</p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className={cn(
-                                        "h-8 w-8 rounded-full hover:bg-muted/80 transition-colors",
-                                        isWebSearchEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                      )}
-                                      onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
-                                    >
-                                      <Globe className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" sideOffset={5}>
-                                    <p>Search the internet</p>
-                                  </TooltipContent>
-                                </Tooltip>
-
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className={cn(
-                                        "h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5 transition-colors",
-                                        isReasonEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                      )}
-                                      onClick={() => setIsReasonEnabled(!isReasonEnabled)}
-                                    >
-                                      <LightbulbIcon className="h-4 w-4" />
-                                      <span className="text-sm">Reason</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" sideOffset={5}>
-                                    <p>Use StarlisThink</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </TooltipProvider>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Select value={selectedModel} onValueChange={setSelectedModel}>
-                            <SelectTrigger className="w-[200px] border-input bg-background">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                              <SelectItem value="claude-3-7-sonnet-latest">Claude 3.7 Sonnet</SelectItem>
-                              <SelectItem value="claude-3-5-haiku-latest">Claude 3.5 Haiku</SelectItem>
-                              <SelectItem value="claude-3-opus-20240229">Claude 3.7 Opus</SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          <Select value={selectedStyle} onValueChange={setSelectedStyle}>
-                            <SelectTrigger className="w-[150px] border-input bg-background">
-                              <SelectValue placeholder="Choose style" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="balanced">Balanced</SelectItem>
-                              <SelectItem value="creative">Creative</SelectItem>
-                              <SelectItem value="precise">Precise</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm">
-                            <span>Collaborate with your assistant using documents, images, and more</span>
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Paperclip className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
-                            {quickActions.map((action, index) => (
-                              <Button
-                                key={index}
-                                variant="outline"
-                                className="border-input bg-background hover:bg-accent"
-                                onClick={() => handleSendMessage(action.text)}
-                              >
-                                <action.icon className={`mr-2 h-4 w-4 ${action.color}`} />
-                                {action.text}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col h-full pt-16 pb-24">
+              <main ref={mainRef} className="flex-1 flex flex-col">
+                {!isChatExpanded && (
+                  <div 
+                    className="absolute inset-x-0 top-0 z-30 pointer-events-none transition-opacity duration-300"
+                    style={{ 
+                      opacity: scrollOpacity,
+                      background: 'linear-gradient(to bottom, var(--background) 0%, var(--background) 60%, transparent 100%)',
+                      height: '120px'
+                    }}
+                  />
+                )}
+                <div className={`transition-all duration-300 ease-in-out ${isChatExpanded ? "opacity-0" : "opacity-100"}`}>
+                  <TimeBasedArt />
+                </div>
+                <div className={`flex-1 flex flex-col mx-auto w-full relative z-10 transition-all duration-300 ease-in-out ${isChatExpanded ? "" : "pt-32 mt-16"}`}>
+                  {!isChatExpanded ? (
+                    <div className="space-y-12 relative z-10 mt-8 transition-all duration-300 ease-in-out">
+                      <div className="flex items-center gap-3">
+                        <Sun className="h-8 w-8 text-orange-400" />
+                        <h1 className="text-4xl font-semibold text-black dark:text-white">
+                          {getGreeting()}, {userData?.firstName || "there"}
+                        </h1>
                       </div>
-                    </Card>
 
-                    {/* Recent conversations */}
-                    <div className="mt-8">
-                      <h2 className="mb-4 text-xl font-medium">Recent conversations</h2>
-                      <div className="space-y-5">
-                        {recentConversations.length > 0 ? (
-                          recentConversations.map((conversation) => (
-                            <Card
-                              key={conversation.id}
-                              className="cursor-pointer border-neutral-800 p-3 transition-colors hover:bg-neutral-800/50"
-                              onClick={() => navigateToConversation(conversation.id)}
-                            >
-                              <div className="flex justify-between">
-                                <h3 className="font-medium text-sm">{conversation.name}</h3>
-                                <span className="text-xs">
-                                  {conversation.timeLastModified?.toDate() 
-                                    ? formatRelativeTime(conversation.timeLastModified.toDate().toISOString())
-                                    : 'Just now'}
-                                </span>
-                              </div>
-                              <p className="mt-1 text-sm line-clamp-1 text-muted-foreground">
-                                {format(conversation.timeLastModified?.toDate() || new Date(), "MMM d, yyyy 'at' h:mm a")}
-                              </p>
-                            </Card>
-                          ))
-                        ) : (
-                          <p className="text-center text-muted-foreground">No recent conversations</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col h-[calc(100vh-4rem)]">
-                    {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto">
-                      <div className="flex flex-col gap-6 py-8 px-4">
-                        {messages.map((message, index) => (
-                          <MessageContainer
-                            key={message.id}
-                            message={message}
-                            userData={userData || undefined}
-                            onRegenerate={() => handleRegenerateMessage(message.id)}
-                            isRegenerating={regeneratingIndex === index}
-                            onEditEmail={() => handleEditEmail(message.id)}
-                            onSendEmail={() => handleSendEmail(message.id)}
-                            onEndCall={() => handleEndCall(message.id)}
-                            onReturnToChat={handleReturnToChat}
-                            isLastMessage={index === messages.length - 1}
-                          />
-                        ))}
-
-                        {messages.length === 0 && isChatExpanded && null}
-
-                        {isLoading && (
-                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                            <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
-                            <span>Thinking</span>
-                          </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                      </div>
-                    </div>
-
-                    {/* Input Area - Fixed at bottom with proper spacing */}
-                    <div className={cn(
-                      "w-full bg-background/80 backdrop-blur-sm",
-                      isMobileMode ? "pb-32" : "pb-6"
-                    )}>
-                      <div className="max-w-4xl mx-auto px-4">
-                        <Card className="rounded-xl overflow-visible bg-background/30 border-0 shadow-lg backdrop-blur-sm">
-                          <div className="p-2">
+                      <Card className="border-border bg-card/50 p-4 transition-all duration-300 ease-in-out">
+                        <div className="space-y-4">
+                          <div className="border rounded-lg border-border p-3 space-y-3">
                             <div className="relative">
                               <Textarea
-                                placeholder="Ask anything"
+                                placeholder="How can I help you today?"
                                 value={input}
                                 onChange={(e) => {
                                   setInput(e.target.value)
+                                  // Auto-resize the textarea
                                   e.target.style.height = 'auto'
                                   e.target.style.height = e.target.scrollHeight + 'px'
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault()
-                                    if (!isLoading && !typingMessageIndex) {
-                                      handleSendMessage(input)
-                                    }
+                                    setIsChatExpanded(true)
+                                    handleSendMessage(input)
                                   }
                                 }}
-                                className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden w-full"
-                                disabled={typingMessageIndex !== null}
+                                className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden pr-12"
                                 rows={1}
                               />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-primary/10 hover:bg-primary/20"
+                                onClick={() => {
+                                  setIsChatExpanded(true)
+                                  handleSendMessage(input)
+                                }}
+                                disabled={!input.trim() || isLoading}
+                              >
+                                <Send className="h-5 w-5" />
+                              </Button>
                             </div>
-                            <div className="flex items-center justify-between gap-2 mt-2">
+
+                            <div className="flex items-center gap-2">
                               <TooltipProvider delayDuration={0}>
                                 <div className="flex items-center gap-2">
                                   <Tooltip>
@@ -933,41 +732,247 @@ export default function AssistantPage() {
                                   </Tooltip>
                                 </div>
                               </TooltipProvider>
-
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20"
-                                onClick={() => {
-                                  if (isLoading) {
-                                    setIsLoading(false)
-                                    setMessages(prev => prev.slice(0, -1))
-                                  } else if (typingMessageIndex !== null) {
-                                    setTypingMessageIndex(null)
-                                  } else {
-                                    handleSendMessage(input)
-                                  }
-                                }}
-                                disabled={!input.trim() && !isLoading && typingMessageIndex === null}
-                              >
-                                {isLoading || typingMessageIndex !== null ? (
-                                  <Square className="h-4 w-4" />
-                                ) : (
-                                  <ArrowUp className="h-4 w-4" />
-                                )}
-                              </Button>
                             </div>
                           </div>
-                        </Card>
+
+                          <div className="flex gap-2">
+                            <Select value={selectedModel} onValueChange={setSelectedModel}>
+                              <SelectTrigger className="w-[200px] border-input bg-background">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                                <SelectItem value="claude-3-7-sonnet-latest">Claude 3.7 Sonnet</SelectItem>
+                                <SelectItem value="claude-3-5-haiku-latest">Claude 3.5 Haiku</SelectItem>
+                                <SelectItem value="claude-3-opus-20240229">Claude 3.7 Opus</SelectItem>
+                              </SelectContent>
+                            </Select>
+
+                            <Select value={selectedStyle} onValueChange={setSelectedStyle}>
+                              <SelectTrigger className="w-[150px] border-input bg-background">
+                                <SelectValue placeholder="Choose style" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="balanced">Balanced</SelectItem>
+                                <SelectItem value="creative">Creative</SelectItem>
+                                <SelectItem value="precise">Precise</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm">
+                              <span>Collaborate with your assistant using documents, images, and more</span>
+                              <div className="flex gap-2">
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <Paperclip className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {quickActions.map((action, index) => (
+                                <Button
+                                  key={index}
+                                  variant="outline"
+                                  className="border-input bg-background hover:bg-accent"
+                                  onClick={() => handleSendMessage(action.text)}
+                                >
+                                  <action.icon className={`mr-2 h-4 w-4 ${action.color}`} />
+                                  {action.text}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Recent conversations */}
+                      <div className="mt-8">
+                        <h2 className="mb-4 text-xl font-medium">Recent conversations</h2>
+                        <div className="space-y-5">
+                          {recentConversations.length > 0 ? (
+                            recentConversations.map((conversation) => (
+                              <Card
+                                key={conversation.id}
+                                className="cursor-pointer border-neutral-800 p-3 transition-colors hover:bg-neutral-800/50"
+                                onClick={() => navigateToConversation(conversation.id)}
+                              >
+                                <div className="flex justify-between">
+                                  <h3 className="font-medium text-sm">{conversation.name}</h3>
+                                  <span className="text-xs">
+                                    {conversation.timeLastModified?.toDate() 
+                                      ? formatRelativeTime(conversation.timeLastModified.toDate().toISOString())
+                                      : 'Just now'}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-sm line-clamp-1 text-muted-foreground">
+                                  {format(conversation.timeLastModified?.toDate() || new Date(), "MMM d, yyyy 'at' h:mm a")}
+                                </p>
+                              </Card>
+                            ))
+                          ) : (
+                            <p className="text-center text-muted-foreground">No recent conversations</p>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  ) : (
+                    <div className="flex flex-col h-full">
+                      {/* Messages Area */}
+                      <div className="flex-1 overflow-y-auto">
+                        <div className="flex flex-col gap-6 py-12 px-8 max-w-4xl mx-auto">
+                          {messages.map((message, index) => (
+                            <MessageContainer
+                              key={message.id}
+                              message={message}
+                              userData={userData || undefined}
+                              onRegenerate={() => handleRegenerateMessage(message.id)}
+                              isRegenerating={regeneratingIndex === index}
+                              onEditEmail={() => handleEditEmail(message.id)}
+                              onSendEmail={() => handleSendEmail(message.id)}
+                              onEndCall={() => handleEndCall(message.id)}
+                              onReturnToChat={handleReturnToChat}
+                              isLastMessage={index === messages.length - 1}
+                            />
+                          ))}
+
+                          {messages.length === 0 && isChatExpanded && null}
+
+                          {isLoading && (
+                            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                              <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
+                              <span>Thinking</span>
+                            </div>
+                          )}
+                          <div ref={messagesEndRef} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </main>
+            </div>
+
+            {/* Fixed Input Area - Always at bottom */}
+            <div className={cn(
+              "fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-t",
+              isMobileMode ? "pb-32" : "pb-6"
+            )}>
+              <div className="w-full px-12 pt-4 max-w-3xl mx-auto">
+                <Card className="rounded-xl overflow-visible bg-background/30 border-0 shadow-lg backdrop-blur-sm">
+                  <div className="p-2">
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Ask anything"
+                        value={input}
+                        onChange={(e) => {
+                          setInput(e.target.value)
+                          e.target.style.height = 'auto'
+                          e.target.style.height = e.target.scrollHeight + 'px'
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault()
+                            if (!isLoading && !typingMessageIndex) {
+                              handleSendMessage(input)
+                            }
+                          }
+                        }}
+                        className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden w-full"
+                        disabled={typingMessageIndex !== null}
+                        rows={1}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-2">
+                      <TooltipProvider delayDuration={0}>
+                        <div className="flex items-center gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full hover:bg-muted/80"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" sideOffset={5}>
+                              <p>Attach files</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                  "h-8 w-8 rounded-full hover:bg-muted/80 transition-colors",
+                                  isWebSearchEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                                )}
+                                onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
+                              >
+                                <Globe className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" sideOffset={5}>
+                              <p>Search the internet</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                  "h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5 transition-colors",
+                                  isReasonEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                                )}
+                                onClick={() => setIsReasonEnabled(!isReasonEnabled)}
+                              >
+                                <LightbulbIcon className="h-4 w-4" />
+                                <span className="text-sm">Reason</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" sideOffset={5}>
+                              <p>Use StarlisThink</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TooltipProvider>
+
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20"
+                        onClick={() => {
+                          if (isLoading) {
+                            setIsLoading(false)
+                            setMessages(prev => prev.slice(0, -1))
+                          } else if (typingMessageIndex !== null) {
+                            setTypingMessageIndex(null)
+                          } else {
+                            handleSendMessage(input)
+                          }
+                        }}
+                        disabled={!input.trim() && !isLoading && typingMessageIndex === null}
+                      >
+                        {isLoading || typingMessageIndex !== null ? (
+                          <Square className="h-4 w-4" />
+                        ) : (
+                          <ArrowUp className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                )}
+                </Card>
               </div>
-            </main>
-          </div>
-        </NoiseTexture>
-      </SidebarInset>
+            </div>
+          </NoiseTexture>
+        </div>
+      </div>
     </SidebarProvider>
   )
 }
