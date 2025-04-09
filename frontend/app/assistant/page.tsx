@@ -597,10 +597,10 @@ export default function AssistantPage() {
         <AppSidebar />
         <div className="flex-1 flex flex-col h-full transition-all duration-300 ease-in-out">
           <NoiseTexture className="flex-1 flex flex-col h-full w-full bg-background dark:bg-neutral-950">
-            {/* Fixed Header - Always at top */}
+            {/* Fixed Header */}
             {currentChatId && messages.length > 0 && (
-              <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-sm border-b">
-                <div className="h-full flex items-center px-4">
+              <div className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-sm transition-all duration-300">
+                <div className="h-16 flex items-center px-4">
                   <ChatHeader
                     conversationId={currentChatId}
                     initialTitle={conversationTitle || "New conversation"}
@@ -611,9 +611,9 @@ export default function AssistantPage() {
               </div>
             )}
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col h-full pt-16 pb-24">
-              <main ref={mainRef} className="flex-1 flex flex-col">
+            {/* Main Content Area with Fixed Input */}
+            <div className="flex-1 flex flex-col h-[calc(100vh-4rem)]">
+              <main ref={mainRef} className="flex-1 flex flex-col overflow-hidden">
                 {!isChatExpanded && (
                   <div 
                     className="absolute inset-x-0 top-0 z-30 pointer-events-none transition-opacity duration-300"
@@ -818,9 +818,9 @@ export default function AssistantPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full min-h-0">
                       {/* Messages Area */}
-                      <div className="flex-1 overflow-y-auto">
+                      <div className="flex-1 overflow-y-auto min-h-0">
                         <div className="flex flex-col gap-6 py-12 px-8 max-w-4xl mx-auto">
                           {messages.map((message, index) => (
                             <MessageContainer
@@ -852,122 +852,122 @@ export default function AssistantPage() {
                   )}
                 </div>
               </main>
-            </div>
 
-            {/* Fixed Input Area - Always at bottom */}
-            <div className={cn(
-              "fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-t",
-              isMobileMode ? "pb-32" : "pb-6"
-            )}>
-              <div className="w-full px-12 pt-4 max-w-3xl mx-auto">
-                <Card className="rounded-xl overflow-visible bg-background/30 border-0 shadow-lg backdrop-blur-sm">
-                  <div className="p-2">
-                    <div className="relative">
-                      <Textarea
-                        placeholder="Ask anything"
-                        value={input}
-                        onChange={(e) => {
-                          setInput(e.target.value)
-                          e.target.style.height = 'auto'
-                          e.target.style.height = e.target.scrollHeight + 'px'
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault()
-                            if (!isLoading && !typingMessageIndex) {
+              {/* Fixed Input Area */}
+              <div className={cn(
+                "w-full bg-background/80 backdrop-blur-sm border-t transition-all duration-300 ease-in-out",
+                isMobileMode ? "pb-32" : "pb-6"
+              )}>
+                <div className="w-full px-12 pt-4 max-w-3xl mx-auto">
+                  <Card className="rounded-xl overflow-visible bg-background/30 border-0 shadow-lg backdrop-blur-sm">
+                    <div className="p-2">
+                      <div className="relative">
+                        <Textarea
+                          placeholder="Ask anything"
+                          value={input}
+                          onChange={(e) => {
+                            setInput(e.target.value)
+                            e.target.style.height = 'auto'
+                            e.target.style.height = e.target.scrollHeight + 'px'
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault()
+                              if (!isLoading && !typingMessageIndex) {
+                                handleSendMessage(input)
+                              }
+                            }
+                          }}
+                          className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden w-full"
+                          disabled={typingMessageIndex !== null}
+                          rows={1}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-2">
+                        <TooltipProvider delayDuration={0}>
+                          <div className="flex items-center gap-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full hover:bg-muted/80"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" sideOffset={5}>
+                                <p>Attach files</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={cn(
+                                    "h-8 w-8 rounded-full hover:bg-muted/80 transition-colors",
+                                    isWebSearchEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                                  )}
+                                  onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
+                                >
+                                  <Globe className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" sideOffset={5}>
+                                <p>Search the internet</p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={cn(
+                                    "h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5 transition-colors",
+                                    isReasonEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
+                                  )}
+                                  onClick={() => setIsReasonEnabled(!isReasonEnabled)}
+                                >
+                                  <LightbulbIcon className="h-4 w-4" />
+                                  <span className="text-sm">Reason</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" sideOffset={5}>
+                                <p>Use StarlisThink</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20"
+                          onClick={() => {
+                            if (isLoading) {
+                              setIsLoading(false)
+                              setMessages(prev => prev.slice(0, -1))
+                            } else if (typingMessageIndex !== null) {
+                              setTypingMessageIndex(null)
+                            } else {
                               handleSendMessage(input)
                             }
-                          }
-                        }}
-                        className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden w-full"
-                        disabled={typingMessageIndex !== null}
-                        rows={1}
-                      />
+                          }}
+                          disabled={!input.trim() && !isLoading && typingMessageIndex === null}
+                        >
+                          {isLoading || typingMessageIndex !== null ? (
+                            <Square className="h-4 w-4" />
+                          ) : (
+                            <ArrowUp className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-2 mt-2">
-                      <TooltipProvider delayDuration={0}>
-                        <div className="flex items-center gap-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 rounded-full hover:bg-muted/80"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" sideOffset={5}>
-                              <p>Attach files</p>
-                            </TooltipContent>
-                          </Tooltip>
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={cn(
-                                  "h-8 w-8 rounded-full hover:bg-muted/80 transition-colors",
-                                  isWebSearchEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                )}
-                                onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
-                              >
-                                <Globe className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" sideOffset={5}>
-                              <p>Search the internet</p>
-                            </TooltipContent>
-                          </Tooltip>
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={cn(
-                                  "h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5 transition-colors",
-                                  isReasonEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                )}
-                                onClick={() => setIsReasonEnabled(!isReasonEnabled)}
-                              >
-                                <LightbulbIcon className="h-4 w-4" />
-                                <span className="text-sm">Reason</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" sideOffset={5}>
-                              <p>Use StarlisThink</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TooltipProvider>
-
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20"
-                        onClick={() => {
-                          if (isLoading) {
-                            setIsLoading(false)
-                            setMessages(prev => prev.slice(0, -1))
-                          } else if (typingMessageIndex !== null) {
-                            setTypingMessageIndex(null)
-                          } else {
-                            handleSendMessage(input)
-                          }
-                        }}
-                        disabled={!input.trim() && !isLoading && typingMessageIndex === null}
-                      >
-                        {isLoading || typingMessageIndex !== null ? (
-                          <Square className="h-4 w-4" />
-                        ) : (
-                          <ArrowUp className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
+                </div>
               </div>
             </div>
           </NoiseTexture>
