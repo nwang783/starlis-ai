@@ -1,0 +1,37 @@
+/* KaTeX Math Styling */
+.katex {
+  font: normal 1.1em KaTeX_Main, 'Times New Roman', serif !important;
+  line-height: 1.2;
+  text-indent: 0;
+  text-rendering: auto;
+}
+
+.katex-display {
+  display: block;
+  margin: 1em 0;
+  text-align: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Ensure equations don't overflow */
+.katex-display > .katex {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1em 0;
+}
+
+/* Dark mode support */
+.dark .katex {
+  color: hsl(var(--foreground));
+}
+
+/* Prose specific styling */
+.prose .math {
+  margin: 1em 0;
+}
+
+.prose .math.math-inline {
+  margin: 0 0.2em;
+} 

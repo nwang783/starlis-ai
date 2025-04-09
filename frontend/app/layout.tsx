@@ -32,6 +32,10 @@ export default function RootLayout({
             --font-geist-mono: ${GeistMono.style.fontFamily};
           }
         `}</style>
+        <link 
+          rel="stylesheet" 
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" 
+        />
       </head>
       <body>
         <ThemeProvider 

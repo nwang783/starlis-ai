@@ -8,9 +8,12 @@ import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
 import { CodeBlock } from "./code-block"
 import { useTypewriter } from "@/hooks/use-typewriter"
 import { MessageActions } from './message-actions'
+import type { Components } from 'react-markdown'
 
 const isUserMessage = (message: Message): boolean => message.role === 'user'
 const isAssistantMessage = (message: Message): boolean => message.role === 'assistant'
@@ -28,6 +31,17 @@ interface MessageContainerProps {
   onReturnToChat: () => void
   isLastMessage: boolean
 }
+
+// Add these type definitions
+type MathComponentProps = {
+  value: string;
+};
+
+// Extend the Components type to include our math components
+type CustomComponents = Components & {
+  math: React.ComponentType<MathComponentProps>;
+  inlineMath: React.ComponentType<MathComponentProps>;
+};
 
 export function MessageContainer({
   message,
@@ -111,15 +125,12 @@ export function MessageContainer({
   }
 
   return (
-    <div 
-      className="w-full group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className="w-full group">
       <div className="space-y-4">
         <div className="prose dark:prose-invert max-w-none">
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
             components={{
               code: ({ className, children, ...props }) => {
                 const match = /language-(\w+)/.exec(className || '')
@@ -135,6 +146,16 @@ export function MessageContainer({
                   </code>
                 )
               },
+              math: ({ value }: MathComponentProps) => (
+                <div className="math math-display">
+                  {value}
+                </div>
+              ),
+              inlineMath: ({ value }: MathComponentProps) => (
+                <span className="math math-inline">
+                  {value}
+                </span>
+              ),
               p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
               h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
               h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{children}</h2>,
@@ -158,7 +179,7 @@ export function MessageContainer({
                   {children}
                 </blockquote>
               ),
-            }}
+            } as CustomComponents}
           >
             {message.isNew ? useTypewriter(message.content).displayedText : message.content}
           </ReactMarkdown>

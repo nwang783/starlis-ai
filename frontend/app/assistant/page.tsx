@@ -609,7 +609,7 @@ export default function AssistantPage() {
                 </div>
               </div>
             )}
-            <main ref={mainRef} className="flex-1 p-4 sm:p-6 lg:p-8 relative">
+            <main ref={mainRef} className="flex-1 p-4 sm:p-6 lg:p-8 relative overflow-hidden">
               {!isChatExpanded && (
                 <div 
                   className="absolute inset-x-0 top-0 z-30 pointer-events-none transition-opacity duration-200"
