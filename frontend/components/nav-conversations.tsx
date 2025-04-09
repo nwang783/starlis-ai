@@ -172,7 +172,10 @@ export function NavConversations() {
         </SidebarMenu>
       </SidebarGroup>
 
-      <SidebarGroup className="group-data-[collapsible=icon]:hidden pt-0">
+      <SidebarGroup className={cn(
+        "pt-0 transition-all duration-500 ease-in-out",
+        "group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:opacity-0"
+      )}>
         <div className="flex items-center justify-between px-2">
           <SidebarGroupLabel className="p-0">Conversations</SidebarGroupLabel>
           <Button

@@ -73,11 +73,8 @@ export function useChat({ onStop, onError }: UseChatOptions = {}): UseChatReturn
       }
       onError?.(error as Error)
     } finally {
-      if (abortControllerRef.current) {
-        // Only reset if we haven't been stopped
-        setIsGenerating(false)
-        abortControllerRef.current = null
-      }
+      setIsGenerating(false)
+      abortControllerRef.current = null
     }
   }, [onError])
 

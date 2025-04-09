@@ -38,7 +38,6 @@ export function MessageInput({ onSend, className }: MessageInputProps) {
 
     const message = input.trim()
     setInput('')
-    onSend(message) // Call the parent's onSend first
     await sendPrompt(message)
   }
 
@@ -46,13 +45,6 @@ export function MessageInput({ onSend, className }: MessageInputProps) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit()
-    }
-  }
-
-  const handleButtonClick = (e: React.MouseEvent) => {
-    if (isGenerating) {
-      e.preventDefault()
-      stopGenerating()
     }
   }
 
@@ -68,12 +60,12 @@ export function MessageInput({ onSend, className }: MessageInputProps) {
         disabled={isGenerating}
       />
       <Button
-        type={isGenerating ? 'button' : 'submit'}
+        type="submit"
         size="icon"
         variant="ghost"
         className="h-10 w-10 rounded-full bg-primary/10 hover:bg-primary/20"
         disabled={!input.trim() && !isGenerating}
-        onClick={handleButtonClick}
+        onClick={isGenerating ? stopGenerating : undefined}
       >
         {isGenerating ? (
           <Square className="h-4 w-4" />

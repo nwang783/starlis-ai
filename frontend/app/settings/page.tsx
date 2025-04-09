@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, Download, Trash2, Mic, Mail, Copy, Calendar, CheckCircle2 } from "lucide-react"
+import { AlertCircle, Download, Trash2, Mic, Mail, Copy, Calendar, CheckCircle2, Settings, MessageSquare, Shield, Link2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import {
   updateUserData,
@@ -1203,18 +1203,66 @@ export default function SettingsPage() {
       <AppSidebar />
       <SidebarInset>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-6">
-          <div className="flex items-center justify-between">
+          <div className="flex gap-6">
+            {/* Mini Sidebar Navigation */}
+            <div className="w-48 flex-shrink-0">
+              <div className="fixed w-48">
+                <div className="mb-6">
             <h1 className="text-2xl font-bold">Settings</h1>
+                </div>
+                <nav className="space-y-1">
+                  <button
+                    onClick={() => setActiveTab("general")}
+                    className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      activeTab === "general"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <Settings className="h-4 w-4" />
+                    General
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("integrations")}
+                    className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      activeTab === "integrations"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <Link2 className="h-4 w-4" />
+                    Integrations
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("assistant")}
+                    className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      activeTab === "assistant"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Assistant
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("security")}
+                    className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      activeTab === "security"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Security
+                  </button>
+                </nav>
+              </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="integrations">Integrations</TabsTrigger>
-              <TabsTrigger value="assistant">Assistant</TabsTrigger>
-              <TabsTrigger value="security">Security</TabsTrigger>
-            </TabsList>
-            <TabsContent value="general" className="mt-4 space-y-4">
+            {/* Content Area */}
+            <div className="flex-1">
+              {activeTab === "general" && (
+                <div className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>General Settings</CardTitle>
@@ -1256,18 +1304,10 @@ export default function SettingsPage() {
                           </SelectTrigger>
                           <SelectContent className="min-w-[180px]">
                             <SelectItem value="+1">+1 (US/Canada)</SelectItem>
-                            <SelectItem value="+44" disabled>
-                              +44 (UK)
-                            </SelectItem>
-                            <SelectItem value="+61" disabled>
-                              +61 (Australia)
-                            </SelectItem>
-                            <SelectItem value="+33" disabled>
-                              +33 (France)
-                            </SelectItem>
-                            <SelectItem value="+49" disabled>
-                              +49 (Germany)
-                            </SelectItem>
+                                <SelectItem value="+44" disabled>+44 (UK)</SelectItem>
+                                <SelectItem value="+61" disabled>+61 (Australia)</SelectItem>
+                                <SelectItem value="+33" disabled>+33 (France)</SelectItem>
+                                <SelectItem value="+49" disabled>+49 (Germany)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1632,8 +1672,334 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+                </div>
+              )}
+
+              {activeTab === "integrations" && (
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Integrations</CardTitle>
+                      <CardDescription>Manage your connected services and discover new integrations</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="active" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="active">Active Integrations</TabsTrigger>
+                          <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="active" className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Google Calendar Integration */}
+                            <Card className="relative">
+                              <CardHeader className="pb-2">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+                                      <path
+                                        fill="#4285F4"
+                                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                      />
+                                      <path
+                                        fill="#34A853"
+                                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                      />
+                                      <path
+                                        fill="#FBBC05"
+                                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                      />
+                                      <path
+                                        fill="#EA4335"
+                                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                      />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <CardTitle className="text-base">Google Calendar</CardTitle>
+                                    <CardDescription>Manage your calendar events</CardDescription>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="pt-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">Connected to manage your calendar events</p>
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50 dark:bg-green-900/30 dark:text-green-400">
+                                      Active
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={integrations.googleCalendar}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          handleConnectIntegration("googleCalendar")
+                                        } else {
+                                          handleDisconnectIntegration("googleCalendar")
+                                        }
+                                      }}
+                                      disabled={isLoading}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDisconnectIntegration("googleCalendar")}
+                                      disabled={isLoading}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            {/* Voice Integration */}
+                            <Card className="relative">
+                              <CardHeader className="pb-2">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                    <Mic className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                    <CardTitle className="text-base">Voice Assistant</CardTitle>
+                                    <CardDescription>Voice capabilities with ElevenLabs & Twilio</CardDescription>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="pt-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                      {twilioComplete && elevenLabsComplete ? "Fully configured" : "Partially configured"}
+                                    </p>
+                                    <Badge
+                                      variant="outline"
+                                      className={`${
+                                        twilioComplete && elevenLabsComplete
+                                          ? "bg-green-50 text-green-700 hover:bg-green-50 dark:bg-green-900/30 dark:text-green-400"
+                                          : "bg-yellow-50 text-yellow-700 hover:bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                      }`}
+                                    >
+                                      {twilioComplete && elevenLabsComplete ? "Active" : "Partial"}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={twilioComplete && elevenLabsComplete}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setShowVoiceModal(true)
+                                        } else {
+                                          setShowDeactivateVoiceModal(true)
+                                        }
+                                      }}
+                                      disabled={isLoading}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setShowVoiceModal(true)}
+                                      disabled={isLoading}
+                                    >
+                                      <Settings className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            {/* SMTP Integration */}
+                            <Card className="relative">
+                              <CardHeader className="pb-2">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                    <Mail className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                    <CardTitle className="text-base">SMTP</CardTitle>
+                                    <CardDescription>Email sending service</CardDescription>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="pt-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                      {smtpSettings.smtpServer ? `Using ${smtpSettings.smtpServer}` : "Not configured"}
+                                    </p>
+                                    <Badge
+                                      variant="outline"
+                                      className={`${
+                                        smtpSettings.smtpServer
+                                          ? "bg-green-50 text-green-700 hover:bg-green-50 dark:bg-green-900/30 dark:text-green-400"
+                                          : "bg-yellow-50 text-yellow-700 hover:bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                      }`}
+                                    >
+                                      {smtpSettings.smtpServer ? "Active" : "Inactive"}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={!!smtpSettings.smtpServer}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setShowSmtpModal(true)
+                                        } else {
+                                          setShowDeactivateSmtpModal(true)
+                                        }
+                                      }}
+                                      disabled={isLoading}
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setShowSmtpModal(true)}
+                                      disabled={isLoading}
+                                    >
+                                      <Settings className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
             </TabsContent>
-            <TabsContent value="assistant" className="mt-4 space-y-4">
+                        <TabsContent value="marketplace" className="space-y-4">
+                          <Tabs defaultValue="official" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                              <TabsTrigger value="official">Official</TabsTrigger>
+                              <TabsTrigger value="community">Community</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="official" className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Google Calendar */}
+                                <Card className="relative">
+                                  <CardHeader className="pb-2">
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+                                          <path
+                                            fill="#4285F4"
+                                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                          />
+                                          <path
+                                            fill="#34A853"
+                                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                          />
+                                          <path
+                                            fill="#FBBC05"
+                                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                          />
+                                          <path
+                                            fill="#EA4335"
+                                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                          />
+                                        </svg>
+                                      </div>
+                                      <div>
+                                        <CardTitle className="text-base">Google Calendar</CardTitle>
+                                        <CardDescription>Connect your Google Calendar</CardDescription>
+                                      </div>
+                                    </div>
+                                  </CardHeader>
+                                  <CardContent className="pt-2">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm text-muted-foreground">Manage your calendar events</p>
+                                      {integrations.googleCalendar ? (
+                                        <Button variant="outline" disabled>
+                                          Connected
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          variant="default"
+                                          onClick={() => handleConnectIntegration("googleCalendar")}
+                                          disabled={isLoading}
+                                        >
+                                          {isLoading ? (
+                                            <>
+                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                              Connecting...
+                                            </>
+                                          ) : (
+                                            "Connect"
+                                          )}
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+
+                                {/* Microsoft (Coming Soon) */}
+                                <Card className="relative bg-muted/40">
+                                  <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] rounded-lg flex items-center justify-center z-10">
+                                    <Badge className="absolute top-2 right-2 bg-purple-100 text-purple-800 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 font-medium">
+                                      Coming Soon
+                                    </Badge>
+                                  </div>
+                                  <CardHeader className="pb-2">
+                                    <div className="flex items-center gap-3 opacity-70">
+                                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" className="h-5 w-5">
+                                          <path fill="#f3f3f3" d="M0 0h23v23H0z" />
+                                          <path fill="#f35325" d="M1 1h10v10H1z" />
+                                          <path fill="#81bc06" d="M12 1h10v10H12z" />
+                                          <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                                          <path fill="#ffba08" d="M12 12h10v10H12z" />
+                                        </svg>
+                                      </div>
+                                      <div>
+                                        <CardTitle className="text-base">Microsoft</CardTitle>
+                                        <CardDescription>Microsoft integration</CardDescription>
+                                      </div>
+                                    </div>
+                                  </CardHeader>
+                                  <CardContent className="pt-2">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm text-muted-foreground">Microsoft integration is in development</p>
+                                      <Button variant="outline" disabled>
+                                        Coming Soon
+                                      </Button>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            </TabsContent>
+                            <TabsContent value="community" className="space-y-4">
+                              <div className="text-center py-8">
+                                <div className="flex flex-col items-center gap-2">
+                                  <svg
+                                    className="h-12 w-12 text-muted-foreground"
+                                    fill="none"
+                                    height="24"
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    viewBox="0 0 24 24"
+                                    width="24"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path d="M17 6.1H3" />
+                                    <path d="M21 12.1H3" />
+                                    <path d="M15.1 18H3" />
+                                  </svg>
+                                  <h3 className="text-lg font-medium">Community Integrations</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    Community-developed integrations will be available here soon.
+                                  </p>
+                                </div>
+                              </div>
+                            </TabsContent>
+                          </Tabs>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {activeTab === "assistant" && (
+                <div className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Assistant Settings</CardTitle>
@@ -1759,212 +2125,12 @@ export default function SettingsPage() {
                   </Button>
                 </CardFooter>
               </Card>
-            </TabsContent>
-            <TabsContent value="integrations" className="mt-4 space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>External Integrations</CardTitle>
-                  <CardDescription>Connect your accounts to Starlis</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Google Calendar Integration section */}
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
-                          <path
-                            fill="#4285F4"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                          />
-                          <path
-                            fill="#EA4335"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                          />
-                        </svg>
                       </div>
-                      <div>
-                        <h4 className="font-medium">Google Calendar</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Connect your Google account to manage your calendar events
-                        </p>
-                      </div>
-                    </div>
-                    {integrations.googleCalendar ? (
-                      <Button 
-                        variant="destructive" 
-                        onClick={() => handleDisconnectIntegration("googleCalendar")}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Disconnecting...
-                          </>
-                        ) : (
-                          "Disconnect"
-                        )}
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        onClick={() => handleConnectIntegration("googleCalendar")}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          "Connect"
-                        )}
-                      </Button>
-                    )}
-                  </div>
+              )}
 
-                  <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/40 relative">
-                    <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] rounded-lg flex items-center justify-center z-10">
-                      <Badge className="absolute top-2 right-2 bg-purple-100 text-purple-800 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 font-medium">
-                        Coming Soon
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 opacity-70">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" className="h-5 w-5">
-                          <path fill="#f3f3f3" d="M0 0h23v23H0z" />
-                          <path fill="#f35325" d="M1 1h10v10H1z" />
-                          <path fill="#81bc06" d="M12 1h10v10H12z" />
-                          <path fill="#05a6f0" d="M1 12h10v10H1z" />
-                          <path fill="#ffba08" d="M12 12h10v10H12z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-medium">Microsoft</h4>
-                        <p className="text-sm text-muted-foreground">Microsoft integration is in development</p>
-                      </div>
-                    </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            <Button variant="outline" disabled={true} className="opacity-60 cursor-not-allowed">
-                              Connect
-                            </Button>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>Microsoft integration is coming soon!</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Voice Integration (ElevenLabs & Twilio) */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Mic className="h-5 w-5" />
-                    <CardTitle>Voice Integration</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Configure your ElevenLabs and Twilio settings for voice capabilities.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className={`${twilioComplete && elevenLabsComplete ? "bg-green-50 text-green-700 hover:bg-green-50 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-50 text-yellow-700 hover:bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400"}`}
-                          >
-                            {twilioComplete && elevenLabsComplete ? "Connected" : "Partially Connected"}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {twilioComplete && elevenLabsComplete
-                              ? "Voice assistant is active"
-                              : "Configuration needed"}
-                          </span>
-                        </div>
-                        <div className="flex gap-2 mt-1">
-                          <span className="text-xs text-muted-foreground">
-                            ElevenLabs: {elevenLabsComplete ? "✓" : "⚠️"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">Twilio: {twilioComplete ? "✓" : "⚠️"}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setShowVoiceModal(true)}>
-                          Configure
-                        </Button>
-                        {(twilioComplete || elevenLabsComplete) && (
-                          <Button variant="destructive" size="sm" onClick={() => setShowDeactivateVoiceModal(true)}>
-                            Deactivate
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* SMTP Integration */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-5 w-5" />
-                    <CardTitle>SMTP</CardTitle>
-                  </div>
-                  <CardDescription>Configure your email sending service for notifications.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className={`${smtpSettings.smtpServer ? "bg-green-50 text-green-700 hover:bg-green-50 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-50 text-yellow-700 hover:bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400"}`}
-                          >
-                            {smtpSettings.smtpServer ? "Connected" : "Not Connected"}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {smtpSettings.smtpServer ? `Using ${smtpSettings.smtpServer}` : "SMTP not configured"}
-                          </span>
-                        </div>
-                        {smtpSettings.smtpServer && (
-                          <span className="text-xs text-muted-foreground mt-1">{smtpSettings.smtpUsername}</span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setShowSmtpModal(true)}>
-                          Configure
-                        </Button>
-                        {smtpSettings.smtpServer && (
-                          <Button variant="destructive" size="sm" onClick={() => setShowDeactivateSmtpModal(true)}>
-                            Deactivate
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="security" className="mt-4 space-y-4">
+              {activeTab === "security" && (
+                <div className="space-y-4">
               <TwoFactorSetup />
-
               <Card>
                 <CardHeader>
                   <CardTitle>Password Settings</CardTitle>
@@ -1987,333 +2153,230 @@ export default function SettingsPage() {
                   <Button>Update Password</Button>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </SidebarInset>
 
-      {/* SMTP Settings Modal */}
-      <Dialog open={showSmtpModal} onOpenChange={setShowSmtpModal}>
-        <DialogContent className="sm:max-w-[500px]">
+      {/* Voice Configuration Modal */}
+      <Dialog open={showVoiceModal} onOpenChange={setShowVoiceModal}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{smtpSettings.smtpServer ? "Edit SMTP Settings" : "Connect SMTP"}</DialogTitle>
+            <DialogTitle>Configure Voice Assistant</DialogTitle>
             <DialogDescription>
-              Configure your SMTP settings to enable Starlis to send emails on your behalf.
+              Set up your voice assistant with ElevenLabs and Twilio credentials.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="smtp-server">SMTP Server</Label>
+              <Label htmlFor="twilioSid">Twilio Account SID</Label>
               <Input
-                id="smtp-server"
-                name="smtpServer"
-                placeholder="smtp.example.com"
-                value={smtpFormData.smtpServer}
-                onChange={handleSmtpInputChange}
+                id="twilioSid"
+                name="twilioSid"
+                value={twilioFormData.twilioSid}
+                onChange={handleTwilioInputChange}
+                placeholder="Enter your Twilio Account SID"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="smtp-username">SMTP Username</Label>
+              <Label htmlFor="twilioApiKey">Twilio API Key</Label>
                 <Input
-                  id="smtp-username"
-                  name="smtpUsername"
-                  placeholder="username@example.com"
-                  value={smtpFormData.smtpUsername}
-                  onChange={handleSmtpInputChange}
+                id="twilioApiKey"
+                name="twilioApiKey"
+                value={twilioFormData.twilioApiKey}
+                onChange={handleTwilioInputChange}
+                placeholder="Enter your Twilio API Key"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="smtp-password">SMTP Password</Label>
+              <Label htmlFor="twilioPhoneNumber">Twilio Phone Number</Label>
                 <Input
-                  id="smtp-password"
-                  name="smtpPassword"
-                  type="password"
-                  placeholder={smtpSettings.smtpPassword ? "••••••••" : "Enter password"}
-                  value={smtpFormData.smtpPassword}
-                  onChange={handleSmtpInputChange}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="smtp-port">SMTP Port</Label>
-                <Input
-                  id="smtp-port"
-                  name="smtpPort"
-                  placeholder="587"
-                  value={smtpFormData.smtpPort}
-                  onChange={handleSmtpInputChange}
+                id="twilioPhoneNumber"
+                name="twilioPhoneNumber"
+                value={twilioFormData.twilioPhoneNumber}
+                onChange={handleTwilioInputChange}
+                placeholder="Enter your Twilio Phone Number"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="smtp-encryption">Encryption</Label>
-                <Select
-                  name="smtpEncryption"
-                  value={smtpFormData.smtpEncryption}
-                  onValueChange={(value) => setSmtpFormData((prev) => ({ ...prev, smtpEncryption: value }))}
-                >
-                  <SelectTrigger id="smtp-encryption">
-                    <SelectValue placeholder="Select encryption" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="ssl">SSL/TLS</SelectItem>
-                    <SelectItem value="tls">STARTTLS</SelectItem>
-                  </SelectContent>
-                </Select>
+              <Label htmlFor="elevenLabsApiKey">ElevenLabs API Key</Label>
+                <Input
+                id="elevenLabsApiKey"
+                name="elevenLabsApiKey"
+                value={elevenLabsFormData.elevenLabsApiKey}
+                onChange={handleElevenLabsInputChange}
+                placeholder="Enter your ElevenLabs API Key"
+                />
               </div>
-            </div>
+              <div className="space-y-2">
+              <Label htmlFor="elevenLabsAgentId">ElevenLabs Agent ID</Label>
+              <Input
+                id="elevenLabsAgentId"
+                name="elevenLabsAgentId"
+                value={elevenLabsFormData.elevenLabsAgentId}
+                onChange={handleElevenLabsInputChange}
+                placeholder="Enter your ElevenLabs Agent ID"
+              />
+              </div>
           </div>
-          <DialogFooter className="flex justify-between">
-            {smtpSettings.smtpServer && (
-              <Button variant="destructive" onClick={handleDisconnectSmtp} disabled={isLoading}>
-                Disconnect
-              </Button>
-            )}
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowSmtpModal(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveSmtpSettings} disabled={isLoading}>
-                {isLoading ? "Saving..." : "Save Settings"}
-              </Button>
-            </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowVoiceModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveVoiceSettings} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Deactivate Voice Integration Confirmation Modal */}
-      <Dialog open={showDeactivateVoiceModal} onOpenChange={setShowDeactivateVoiceModal}>
-        <DialogContent className="sm:max-w-[500px]">
+      {/* SMTP Configuration Modal */}
+      <Dialog open={showSmtpModal} onOpenChange={setShowSmtpModal}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Deactivate Voice Integration</DialogTitle>
+            <DialogTitle>Configure SMTP Settings</DialogTitle>
             <DialogDescription>
-              Are you sure you want to deactivate your voice integration? This will remove all your ElevenLabs and
-              Twilio settings.
+              Set up your email sending service with SMTP credentials.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-destructive font-medium">Warning:</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Deactivating will disable all voice capabilities in your Starlis assistant. You will need to reconfigure
-              these settings to use voice features again.
-            </p>
+          <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+              <Label htmlFor="smtpServer">SMTP Server</Label>
+                <Input
+                id="smtpServer"
+                name="smtpServer"
+                value={smtpFormData.smtpServer}
+                onChange={handleSmtpInputChange}
+                placeholder="smtp.example.com"
+                />
+              </div>
+              <div className="space-y-2">
+              <Label htmlFor="smtpPort">SMTP Port</Label>
+                <Input
+                id="smtpPort"
+                name="smtpPort"
+                value={smtpFormData.smtpPort}
+                onChange={handleSmtpInputChange}
+                placeholder="587"
+                />
+              </div>
+              <div className="space-y-2">
+              <Label htmlFor="smtpUsername">SMTP Username</Label>
+                <Input
+                id="smtpUsername"
+                name="smtpUsername"
+                value={smtpFormData.smtpUsername}
+                onChange={handleSmtpInputChange}
+                placeholder="your@email.com"
+                />
+              </div>
+              <div className="space-y-2">
+              <Label htmlFor="smtpPassword">SMTP Password</Label>
+                <Input
+                id="smtpPassword"
+                name="smtpPassword"
+                value={smtpFormData.smtpPassword}
+                onChange={handleSmtpInputChange}
+                type="password"
+                placeholder="Enter your SMTP password"
+                />
+              </div>
+              <div className="space-y-2">
+              <Label htmlFor="smtpEncryption">Encryption</Label>
+              <Select
+                value={smtpFormData.smtpEncryption}
+                onValueChange={(value) =>
+                  handleSmtpInputChange({
+                    target: { name: "smtpEncryption", value },
+                  } as any)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select encryption" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tls">TLS</SelectItem>
+                  <SelectItem value="ssl">SSL</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
+                </SelectContent>
+              </Select>
+              </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSmtpModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSmtpSettings} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deactivate Voice Modal */}
+      <Dialog open={showDeactivateVoiceModal} onOpenChange={setShowDeactivateVoiceModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Deactivate Voice Assistant</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to deactivate the voice assistant? This will remove all voice-related settings.
+            </DialogDescription>
+          </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeactivateVoiceModal(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDeactivateVoice} disabled={isLoading}>
-              {isLoading ? "Deactivating..." : "Deactivate"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deactivating...
+                </>
+              ) : (
+                "Deactivate"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Deactivate SMTP Confirmation Modal */}
+      {/* Deactivate SMTP Modal */}
       <Dialog open={showDeactivateSmtpModal} onOpenChange={setShowDeactivateSmtpModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Deactivate SMTP Integration</DialogTitle>
+            <DialogTitle>Deactivate SMTP</DialogTitle>
             <DialogDescription>
-              Are you sure you want to deactivate your SMTP integration? This will remove all your email sending
-              settings.
+              Are you sure you want to deactivate SMTP? This will remove all SMTP settings.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-destructive font-medium">Warning:</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Deactivating will disable email sending capabilities in your Starlis assistant. You will need to
-              reconfigure these settings to use email features again.
-            </p>
-          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeactivateSmtpModal(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDisconnectSmtp} disabled={isLoading}>
-              {isLoading ? "Deactivating..." : "Deactivate"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Export Data Modal */}
-      {showExportModal && (
-        <ExportDataModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} userEmail={email} />
-      )}
-
-      {/* Delete Account Flow */}
-      {showDeleteAccountFlow && (
-        <DeleteAccountFlow
-          isOpen={showDeleteAccountFlow}
-          onClose={() => setShowDeleteAccountFlow(false)}
-          userEmail={email}
-          has2FA={twoFactorEnabled}
-        />
-      )}
-
-      {/* Voice Settings Modal */}
-      <Dialog open={showVoiceModal} onOpenChange={setShowVoiceModal}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Voice Integration Settings</DialogTitle>
-            <DialogDescription>Configure your ElevenLabs and Twilio settings for voice capabilities.</DialogDescription>
-          </DialogHeader>
-          <Tabs defaultValue="elevenlabs" className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="elevenlabs">ElevenLabs</TabsTrigger>
-              <TabsTrigger value="twilio">Twilio</TabsTrigger>
-            </TabsList>
-            <TabsContent value="elevenlabs" className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="elevenlabs-api-key">ElevenLabs API Key</Label>
-                <Input
-                  id="elevenlabs-api-key"
-                  name="elevenLabsApiKey"
-                  placeholder="Enter your ElevenLabs API key"
-                  value={elevenLabsFormData.elevenLabsApiKey}
-                  onChange={handleElevenLabsInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="elevenlabs-agent-id">ElevenLabs Agent ID</Label>
-                <Input
-                  id="elevenlabs-agent-id"
-                  name="elevenLabsAgentId"
-                  placeholder="Enter your ElevenLabs Agent ID"
-                  value={elevenLabsFormData.elevenLabsAgentId}
-                  onChange={handleElevenLabsInputChange}
-                />
-              </div>
-              <Button onClick={handleSaveElevenLabsSettings} disabled={isLoading} className="w-full">
-                {isLoading ? "Saving..." : "Save ElevenLabs Settings"}
-              </Button>
-            </TabsContent>
-            <TabsContent value="twilio" className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="twilio-sid">Twilio SID</Label>
-                <Input
-                  id="twilio-sid"
-                  name="twilioSid"
-                  placeholder="Enter your Twilio SID"
-                  value={twilioFormData.twilioSid}
-                  onChange={handleTwilioInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="twilio-api-key">Twilio API Key</Label>
-                <Input
-                  id="twilio-api-key"
-                  name="twilioApiKey"
-                  placeholder="Enter your Twilio API Key"
-                  value={twilioFormData.twilioApiKey}
-                  onChange={handleTwilioInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="twilio-phone-number">Twilio Phone Number</Label>
-                <Input
-                  id="twilio-phone-number"
-                  name="twilioPhoneNumber"
-                  placeholder="+1234567890"
-                  value={twilioFormData.twilioPhoneNumber}
-                  onChange={handleTwilioInputChange}
-                />
-              </div>
-              <Button onClick={handleSaveTwilioSettings} disabled={isLoading} className="w-full">
-                {isLoading ? "Saving..." : "Save Twilio Settings"}
-              </Button>
-            </TabsContent>
-          </Tabs>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowVoiceModal(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Regenerate Email Warning Modal */}
-      <Dialog open={showRegenerateWarningModal} onOpenChange={setShowRegenerateWarningModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Regenerate Forwarding Email</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to regenerate your Starlis forwarding email address?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Alert variant="destructive" className="border-yellow-500">
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-              <AlertTitle>Warning</AlertTitle>
-              <AlertDescription>
-                Regenerating your email address will require you to reconfigure your email client to forward emails to
-                the new address. Any emails sent to the old address will no longer be processed.
-              </AlertDescription>
-            </Alert>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRegenerateWarningModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setShowRegenerateWarningModal(false)
-                setShowPasswordConfirmModal(true)
-              }}
-            >
-              Continue
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Password Confirmation Modal */}
-      <Dialog open={showPasswordConfirmModal} onOpenChange={setShowPasswordConfirmModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Confirm Your Password</DialogTitle>
-            <DialogDescription>Please enter your password to confirm this action.</DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            {regenerateError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{regenerateError}</AlertDescription>
-              </Alert>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="regenerate-password">Password</Label>
-              <Input
-                id="regenerate-password"
-                type="password"
-                value={regeneratePassword}
-                onChange={(e) => setRegeneratePassword(e.target.value)}
-                placeholder="Enter your password"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowPasswordConfirmModal(false)
-                setRegeneratePassword("")
-                setRegenerateError(null)
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleRegenerateEmailWithPassword} disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Regenerating...
+                  Deactivating...
                 </>
               ) : (
-                "Regenerate Email"
+                "Deactivate"
               )}
             </Button>
           </DialogFooter>

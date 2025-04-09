@@ -10,16 +10,23 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { CodeBlock } from "./code-block"
 import { useTypewriter } from "@/hooks/use-typewriter"
+import { MessageActions } from './message-actions'
+
+const isUserMessage = (message: Message): boolean => message.role === 'user'
+const isAssistantMessage = (message: Message): boolean => message.role === 'assistant'
+
+type MessageRole = 'user' | 'assistant'
 
 interface MessageContainerProps {
   message: Message
   userData?: UserData
-  onRegenerate?: (messageId: string) => void
-  isRegenerating?: boolean
-  onEditEmail?: (messageId: string) => void
-  onSendEmail?: (messageId: string) => void
-  onEndCall?: (messageId: string) => void
-  onReturnToChat?: () => void
+  onRegenerate: (messageId: string) => void
+  isRegenerating: boolean
+  onEditEmail: (messageId: string) => void
+  onSendEmail: (messageId: string) => void
+  onEndCall: (messageId: string) => void
+  onReturnToChat: () => void
+  isLastMessage: boolean
 }
 
 export function MessageContainer({
@@ -31,10 +38,12 @@ export function MessageContainer({
   onSendEmail,
   onEndCall,
   onReturnToChat,
+  isLastMessage,
 }: MessageContainerProps) {
   const { toast } = useToast()
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [displayedText, setDisplayedText] = useState(message.content)
 
   const handleCopy = async () => {
     try {
@@ -74,11 +83,28 @@ export function MessageContainer({
 
   if (message.role === "user") {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[80%]">
-          <div className="rounded-2xl bg-primary/10 text-foreground px-4 py-2">
-            {message.content}
+      <div 
+        className="w-full group"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="space-y-4 flex flex-col items-end">
+          <div className="max-w-[80%]">
+            <div className="rounded-2xl bg-primary/10 text-foreground px-4 py-2">
+              {message.content}
+            </div>
           </div>
+          <MessageActions
+            content={message.content}
+            isUser={isUserMessage(message)}
+            isLastMessage={isLastMessage}
+            onRegenerate={isAssistantMessage(message) && isLastMessage && !isRegenerating ? () => onRegenerate(message.id) : undefined}
+            onEdit={isUserMessage(message) && isLastMessage ? (newContent) => {
+              // Handle message edit
+              console.log('Edit message:', newContent)
+            } : undefined}
+            className="justify-end"
+          />
         </div>
       </div>
     )
@@ -137,39 +163,17 @@ export function MessageContainer({
             {message.isNew ? useTypewriter(message.content).displayedText : message.content}
           </ReactMarkdown>
         </div>
-        <div className="flex items-center gap-1 h-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={handleCopy}
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={handleSpeech}
-          >
-            <Volume2 className={cn("h-4 w-4", isSpeaking && "text-primary")} />
-          </Button>
-          {onRegenerate && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => onRegenerate(message.id)}
-              disabled={isRegenerating}
-            >
-              {isRegenerating ? (
-                <Square className="h-4 w-4" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-        </div>
+        <MessageActions
+          content={message.content}
+          isUser={isUserMessage(message)}
+          isLastMessage={isLastMessage}
+          onRegenerate={isAssistantMessage(message) && isLastMessage && !isRegenerating ? () => onRegenerate(message.id) : undefined}
+          onEdit={isUserMessage(message) && isLastMessage ? (newContent) => {
+            // Handle message edit
+            console.log('Edit message:', newContent)
+          } : undefined}
+          className={isUserMessage(message) ? 'justify-end' : 'justify-start'}
+        />
       </div>
     </div>
   )

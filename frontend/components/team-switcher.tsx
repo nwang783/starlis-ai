@@ -10,13 +10,13 @@ export function TeamSwitcher() {
     <SidebarMenu>
       <SidebarMenuItem>
         <Link href="/dashboard" className="flex items-center justify-center p-2 hover:opacity-80 transition-opacity">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-center gap-2">
             <img
               src="/starlis_cutout.svg"
               alt="Starlis Logo"
-              className="h-8 w-8 text-primary flex-shrink-0 dark:brightness-0 dark:invert"
+              className={`text-primary flex-shrink-0 dark:brightness-0 dark:invert transition-all duration-500 ease-in-out ${isCollapsed ? 'h-10 w-10' : 'h-16 w-16'}`}
             />
-            {!isCollapsed && <span className="text-2xl font-semibold flex items-center h-8">starlis</span>}
+            {!isCollapsed && <span className="text-2xl font-semibold transition-opacity duration-500 ease-in-out">starlis</span>}
           </div>
         </Link>
       </SidebarMenuItem>

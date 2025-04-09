@@ -1,9 +1,11 @@
 "use client"
 
 import type * as React from "react"
-import { ArrowLeft, Home, Settings } from "lucide-react"
+import { ArrowLeft, Home, Settings, ArrowUpRight } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 import { NavPlatform } from "./nav-main"
 import { NavConversations } from "./nav-conversations"
@@ -18,6 +20,9 @@ import {
   SidebarRail,
   SidebarTrigger,
   useSidebar,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/auth-context"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -87,13 +92,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <>
-      <Sidebar collapsible="icon" className="hidden md:flex bg-background dark:bg-black shadow-lg transition-all duration-200" {...props}>
-        <SidebarHeader className="mt-12 pb-16">
+      <Sidebar collapsible="icon" className="hidden md:flex bg-background dark:bg-black shadow-lg transition-all duration-500 ease-in-out" {...props}>
+        <SidebarHeader className="mt-12 pb-8">
           <TeamSwitcher />
         </SidebarHeader>
-        <SidebarContent>
-          <NavConversations projects={data.projects} />
-          <NavPlatform items={data.navMain} />
+        <SidebarContent className="flex flex-col">
+          <NavConversations />
+          <div className={cn(
+            "transition-all duration-500 ease-in-out",
+            isCollapsed ? "mt-24" : "mt-8"
+          )}>
+            <NavPlatform items={data.navMain} />
+          </div>
         </SidebarContent>
 
         {/* Custom button with SidebarTrigger for functionality */}
