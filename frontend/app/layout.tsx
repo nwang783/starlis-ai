@@ -6,6 +6,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
 import { ToastProvider } from "@/components/toast-provider"
+import { SidebarProvider } from "@/components/ui/sidebar"
 
 export const metadata: Metadata = {
   title: "Starlis - Your Intelligent Assistant",
@@ -46,7 +47,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
+            <SidebarProvider>
+              {children}
+            </SidebarProvider>
             <ToastProvider />
           </AuthProvider>
         </ThemeProvider>

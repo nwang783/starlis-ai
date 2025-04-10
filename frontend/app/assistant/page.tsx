@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Paperclip, Send, Sun, Calendar, Mail, Phone, Copy, Volume2, RefreshCw, Square, Globe, Plus, LightbulbIcon, ArrowUp } from "lucide-react"
+import { Paperclip, Send, Sun, Calendar, Mail, Phone, Copy, Volume2, RefreshCw, Square, Globe, Plus, LightbulbIcon, ArrowUp, BrainCircuit, Sparkles, MessageSquare, FileText, Search, Bot, ChevronDown, ChevronUp, X, Loader2, Sparkles as SparklesIcon, MessageSquare as MessageSquareIcon, FileText as FileTextIcon, Search as SearchIcon, ArrowRight, Settings, PanelRight } from "lucide-react"
 import { cn, extractPhoneNumber } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
 import { saveChatMessage, getChatMessages, createNewChat } from "@/lib/firebase"
@@ -51,55 +51,75 @@ import {
 import { Message, Conversation } from '@/lib/types'
 import { v4 as uuidv4 } from 'uuid'
 import { format } from 'date-fns'
+import { RightCanvas } from "@/components/right-canvas"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import Image from "next/image"
+import { RightSideDrawer } from "@/components/right-side-drawer"
+import { ModelLibrary } from "@/components/model-library"
+import { Switch } from "@/components/ui/switch"
 
 // Quick action suggestions
-const quickActions = [
+const quickPrompts = [
   {
-    text: "Schedule a meeting",
-    icon: Calendar,
-    color: "text-red-500",
+    text: "What can you help me with?",
+    icon: <SparklesIcon className="h-4 w-4" />,
   },
   {
-    text: "Send an email",
-    icon: Mail,
-    color: "text-blue-500",
+    text: "Tell me about your features",
+    icon: <MessageSquareIcon className="h-4 w-4" />,
   },
   {
-    text: "Make a phone call",
-    icon: Phone,
-    color: "text-green-500",
+    text: "How do I get started?",
+    icon: <FileTextIcon className="h-4 w-4" />,
   },
 ]
 
 export default function AssistantPage() {
   const router = useRouter()
-  const { user, userData } = useAuth()
   const searchParams = useSearchParams()
-  const chatId = searchParams.get("chat")
-  const [isMobileMode, setIsMobileMode] = useState(false)
-
-  const [messages, setMessages] = useState<any[]>([])
-  const [input, setInput] = useState("")
+  const { user, userData } = useAuth()
+  const { state: sidebarState, setOpen } = useSidebar()
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false)
+  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false)
+  const [requireConfirmation, setRequireConfirmation] = useState(true)
+  const [isModelDrawerOpen, setIsModelDrawerOpen] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<string | null>(null)
+  const [conversationTitle, setConversationTitle] = useState<string | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [input, setInput] = useState("")
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamedMessage, setStreamedMessage] = useState("")
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null)
+  const [expandedCompanies, setExpandedCompanies] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [newTitle, setNewTitle] = useState("")
+  const [isTitleEditing, setIsTitleEditing] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const { toast } = useToast()
   const [isChatExpanded, setIsChatExpanded] = useState(false)
-  const [selectedModel, setSelectedModel] = useState("claude-3-7-sonnet-latest")
   const [selectedStyle, setSelectedStyle] = useState("balanced")
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(false)
   const [isReasonEnabled, setIsReasonEnabled] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const [recentConversations, setRecentConversations] = useState<any[]>([])
   const [isLocalOnly, setIsLocalOnly] = useState(false)
-  const { toast } = useToast()
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [isAIServiceWorking, setIsAIServiceWorking] = useState(true)
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [speakingMessageIndex, setSpeakingMessageIndex] = useState<number | null>(null)
-  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null)
   const [typingMessageIndex, setTypingMessageIndex] = useState<number | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [conversationTitle, setConversationTitle] = useState<string>("")
   const [scrollOpacity, setScrollOpacity] = useState(1)
   const mainRef = useRef<HTMLElement | null>(null)
+  const [isChatInitialized, setIsChatInitialized] = useState(false)
 
   // Check if OpenAI API is working
   useEffect(() => {
@@ -131,61 +151,22 @@ export default function AssistantPage() {
     checkOpenAIService()
   }, [toast])
 
-  // Load chat messages if chatId is provided
-  useEffect(() => {
-    const loadChatMessages = async () => {
-      if (!user || !chatId) return
-
-      try {
-        setIsLoading(true)
-        // Get conversation details first
-        const conversation = await getConversation(user.uid, chatId)
-        if (conversation) {
-          setConversationTitle(conversation.name)
-          setCurrentChatId(chatId)
-        }
-
-        // Then load messages
-        const messages = await getConversationMessages(user.uid, chatId)
-        if (messages.length > 0) {
-          // Ensure loaded messages don't have the isNew flag
-          const messagesWithoutNewFlag = messages.map(msg => ({
-            ...msg,
-            isNew: false
-          }))
-          setMessages(messagesWithoutNewFlag)
-          setIsChatExpanded(true) // Expand the chat view when loading an existing conversation
-        }
-      } catch (error) {
-        console.error("Error loading chat messages:", error)
-        toast({
-          title: "Error loading chat",
-          description: "Could not load chat messages. Using local mode instead.",
-          variant: "destructive",
-        })
-        setIsLocalOnly(true)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadChatMessages()
-  }, [user, chatId, toast])
-
   // Create a new chat if no chatId is provided
   useEffect(() => {
     const initializeChat = async () => {
-      if (!user || chatId) return // Skip if user is not logged in or chatId exists
+      if (!user || searchParams.get("chat")) return // Skip if user is not logged in or chatId exists
 
       setIsLoading(true)
       try {
         // Initialize with empty messages array
         setMessages([])
+        setIsChatInitialized(true)
       } catch (error) {
         console.error("Error initializing chat:", error)
         // Fallback to local-only mode
         setIsLocalOnly(true)
         setMessages([]) // Initialize with empty messages array
+        setIsChatInitialized(true)
         toast({
           title: "Limited functionality mode",
           description: "Using local storage due to database access issues. Your data won't be saved to your account.",
@@ -197,7 +178,50 @@ export default function AssistantPage() {
     }
 
     initializeChat()
-  }, [user, chatId, toast])
+  }, [user, searchParams.get("chat"), toast])
+
+  // Load chat messages if chatId is provided
+  useEffect(() => {
+    const loadChatMessages = async () => {
+      if (!user || !searchParams.get("chat")) return
+
+      try {
+        setIsLoading(true)
+        // Get conversation details first
+        const conversation = await getConversation(user.uid, searchParams.get("chat"))
+        if (conversation) {
+          setConversationTitle(conversation.name)
+          setCurrentChatId(searchParams.get("chat"))
+        }
+
+        // Then load messages
+        const messages = await getConversationMessages(user.uid, searchParams.get("chat"))
+        if (messages.length > 0) {
+          // Ensure loaded messages don't have the isNew flag
+          const messagesWithoutNewFlag = messages.map(msg => ({
+            ...msg,
+            isNew: false
+          }))
+          setMessages(messagesWithoutNewFlag)
+          setIsChatExpanded(true) // Expand the chat view when loading an existing conversation
+        }
+        setIsChatInitialized(true)
+      } catch (error) {
+        console.error("Error loading chat messages:", error)
+        toast({
+          title: "Error loading chat",
+          description: "Could not load chat messages. Using local mode instead.",
+          variant: "destructive",
+        })
+        setIsLocalOnly(true)
+        setIsChatInitialized(true)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadChatMessages()
+  }, [user, searchParams.get("chat"), toast])
 
   // Scroll to bottom of messages when new messages are added
   useEffect(() => {
@@ -242,13 +266,30 @@ export default function AssistantPage() {
     const checkMobileMode = () => {
       const isSmallScreen = window.innerWidth < 768 // md breakpoint
       const isCollapsed = document.documentElement.getAttribute('data-sidebar-collapsed') === 'true'
-      setIsMobileMode(isCollapsed && isSmallScreen)
+      setIsMobile(isCollapsed && isSmallScreen)
     }
 
     checkMobileMode()
     window.addEventListener('resize', checkMobileMode)
     return () => window.removeEventListener('resize', checkMobileMode)
   }, [])
+
+  // Add effect to handle sidebar state when right sidebar opens/closes
+  useEffect(() => {
+    if (isRightSidebarOpen && sidebarState === "expanded") {
+      // Only collapse if we're on mobile
+      if (isMobile) {
+        setOpen(false)
+      }
+    }
+  }, [isRightSidebarOpen, sidebarState, setOpen, isMobile])
+
+  // Add effect to handle initial collapse when canvas opens
+  useEffect(() => {
+    if (isRightSidebarOpen && sidebarState === "expanded") {
+      setOpen(false)
+    }
+  }, [isRightSidebarOpen]) // Only run when canvas opens/closes
 
   // Handle sending a message
   const handleSendMessage = async (content: string) => {
@@ -344,10 +385,15 @@ export default function AssistantPage() {
   const handleRegenerateMessage = async (messageId: string) => {
     if (!user || !currentChatId) return
 
+    const messageIndex = messages.findIndex(m => m.id === messageId)
+    if (messageIndex === -1) return
+
+    setRegeneratingIndex(messageIndex)
     setIsLoading(true)
+
     try {
       // Get the message to regenerate
-      const messageToRegenerate = messages.find(m => m.id === messageId)
+      const messageToRegenerate = messages[messageIndex]
       if (!messageToRegenerate) return
 
       // Remove the current message
@@ -384,6 +430,7 @@ export default function AssistantPage() {
       })
     } finally {
       setIsLoading(false)
+      setRegeneratingIndex(null)
     }
   }
 
@@ -591,90 +638,311 @@ export default function AssistantPage() {
     }
   }
 
-  return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full overscroll-none overflow-hidden">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col h-full transition-all duration-300 ease-in-out overscroll-none overflow-hidden">
-          <NoiseTexture className="flex-1 flex flex-col h-full w-full bg-background dark:bg-neutral-950 overscroll-none overflow-hidden">
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col h-full overscroll-none overflow-hidden">
-              {/* Fixed Header - Always at top */}
-              {currentChatId && messages.length > 0 && (
-                <div className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-sm border-b">
-                  <div className="h-16 flex items-center px-4">
-                    <ChatHeader
-                      conversationId={currentChatId}
-                      initialTitle={conversationTitle || "New conversation"}
-                      onDelete={handleDeleteConversation}
-                      onRename={handleRenameConversation}
-                    />
-                  </div>
-                </div>
-              )}
+  const handleQuickPrompt = (prompt: string) => {
+    setInput(prompt)
+    setIsChatExpanded(true)
+    handleSendMessage(prompt)
+  }
 
-              <main ref={mainRef} className="flex-1 flex flex-col overscroll-none overflow-hidden">
-                {!isChatExpanded && (
-                  <div 
-                    className="absolute inset-x-0 top-0 z-30 pointer-events-none transition-opacity duration-300"
-                    style={{ 
-                      opacity: scrollOpacity,
-                      background: 'linear-gradient(to bottom, var(--background) 0%, var(--background) 60%, transparent 100%)',
-                      height: '120px'
-                    }}
+  // Add this after the existing models array
+  const allModels = [
+    {
+      id: "gpt-4o",
+      name: "GPT-4o",
+      company: "OpenAI",
+      description: "Most capable model for complex tasks",
+      isSelected: selectedModel === "gpt-4o",
+      icon: (
+        <Image
+          src="/openai-logo.svg"
+          alt="OpenAI Logo"
+          width={16}
+          height={16}
+          className="dark:brightness-0 dark:invert brightness-0"
+        />
+      )
+    },
+    {
+      id: "gpt-4-turbo",
+      name: "GPT-4 Turbo",
+      company: "OpenAI",
+      description: "Fast and efficient for most tasks",
+      isSelected: selectedModel === "gpt-4-turbo",
+      icon: (
+        <Image
+          src="/openai-logo.svg"
+          alt="OpenAI Logo"
+          width={16}
+          height={16}
+          className="dark:brightness-0 dark:invert brightness-0"
+        />
+      )
+    },
+    {
+      id: "claude-3-7-sonnet-latest",
+      name: "Claude 3.7 Sonnet",
+      company: "Anthropic",
+      description: "Balanced performance for most tasks",
+      isSelected: selectedModel === "claude-3-7-sonnet-latest",
+      icon: (
+        <Image
+          src="/anthropic-logo.svg"
+          alt="Anthropic Logo"
+          width={16}
+          height={16}
+          className="dark:brightness-0 dark:invert brightness-0"
+        />
+      )
+    },
+    {
+      id: "claude-3-5-haiku-latest",
+      name: "Claude 3.5 Haiku",
+      company: "Anthropic",
+      description: "Fast and efficient for simple tasks",
+      isSelected: selectedModel === "claude-3-5-haiku-latest",
+      icon: (
+        <Image
+          src="/anthropic-logo.svg"
+          alt="Anthropic Logo"
+          width={16}
+          height={16}
+          className="dark:brightness-0 dark:invert brightness-0"
+        />
+      )
+    },
+    {
+      id: "claude-3-opus-20240229",
+      name: "Claude 3.7 Opus",
+      company: "Anthropic",
+      description: "Most advanced model for research",
+      isSelected: selectedModel === "claude-3-opus-20240229",
+      icon: (
+        <Image
+          src="/anthropic-logo.svg"
+          alt="Anthropic Logo"
+          width={16}
+          height={16}
+          className="dark:brightness-0 dark:invert brightness-0"
+        />
+      )
+    },
+    {
+      id: "gemini-pro",
+      name: "Gemini Pro",
+      company: "Google",
+      description: "Advanced model for complex reasoning",
+      isSelected: selectedModel === "gemini-pro",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          className="h-4 w-4 dark:brightness-0 dark:invert brightness-0"
+        >
+          <path
+            fill="currentColor"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          />
+          <path
+            fill="currentColor"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+          />
+          <path
+            fill="currentColor"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+          />
+          <path
+            fill="currentColor"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+          />
+        </svg>
+      )
+    },
+    {
+      id: "gemini-ultra",
+      name: "Gemini Ultra",
+      company: "Google",
+      description: "Most capable model for advanced tasks",
+      isSelected: selectedModel === "gemini-ultra",
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          className="h-4 w-4 dark:brightness-0 dark:invert brightness-0"
+        >
+          <path
+            fill="currentColor"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          />
+          <path
+            fill="currentColor"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+          />
+          <path
+            fill="currentColor"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+          />
+          <path
+            fill="currentColor"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+          />
+        </svg>
+      )
+    }
+  ]
+
+  return (
+    <div className="flex h-screen w-full overscroll-none overflow-hidden">
+      <AppSidebar />
+      <div className={cn(
+        "flex-1 flex flex-col h-full transition-all duration-300 ease-in-out overscroll-none overflow-hidden",
+        isRightSidebarOpen ? "mr-[50vw]" : ""
+      )}>
+        <NoiseTexture className="flex-1 flex flex-col h-full w-full bg-background overscroll-none overflow-hidden">
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col h-full overscroll-none overflow-hidden">
+            {/* Fixed Header - Always at top */}
+            <div className={cn(
+              "sticky top-0 z-50 w-full bg-background/80 backdrop-blur-sm border-b transition-opacity duration-300",
+              !currentChatId && messages.length === 0 ? "opacity-0" : "opacity-100"
+            )}>
+              <div className="h-16 flex items-center justify-between px-4">
+                  <ChatHeader
+                    conversationId={currentChatId}
+                    initialTitle={conversationTitle || "New conversation"}
+                    onDelete={handleDeleteConversation}
+                    onRename={handleRenameConversation}
                   />
-                )}
-                <div className={`transition-all duration-300 ease-in-out ${isChatExpanded ? "opacity-0" : "opacity-100"}`}>
-                  <TimeBasedArt />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full hover:bg-muted/80"
+                  onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+                >
+                  <PanelRight className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    isRightSidebarOpen && "rotate-180"
+                  )} />
+                </Button>
                 </div>
-                <div className={`flex-1 flex flex-col mx-auto w-full relative z-10 transition-all duration-300 ease-in-out overscroll-none overflow-hidden ${isChatExpanded ? "" : "pt-32 mt-16"}`}>
-                  {!isChatExpanded ? (
-                    <div className="space-y-12 relative z-10 mt-8 transition-all duration-300 ease-in-out">
-                      <div className="flex items-center gap-3">
-                        <Sun className="h-8 w-8 text-orange-400" />
-                        <h1 className="text-4xl font-semibold text-black dark:text-white">
+              </div>
+
+            <main ref={mainRef} className="flex-1 flex flex-col overscroll-none overflow-hidden">
+              {!isChatExpanded && (
+                <div 
+                  className="absolute inset-x-0 top-0 z-30 pointer-events-none transition-opacity duration-300"
+                  style={{ 
+                    opacity: scrollOpacity,
+                    background: 'linear-gradient(to bottom, var(--background) 0%, var(--background) 60%, transparent 100%)',
+                    height: '120px'
+                  }}
+                />
+              )}
+              <div className={`transition-all duration-300 ease-in-out ${isChatExpanded ? "opacity-0" : "opacity-100"}`}>
+                <TimeBasedArt />
+              </div>
+              <div className={`flex-1 flex flex-col mx-auto w-full relative z-10 transition-all duration-300 ease-in-out overscroll-none overflow-y-auto ${isChatExpanded ? "" : "pt-16 mt-16"}`}>
+                {!isChatExpanded ? (
+                  <div className="flex flex-col items-center justify-center h-[calc(100vh-16rem)] relative z-10 transition-all duration-300 ease-in-out">
+                    {/* Gradient Background */}
+                    <div 
+                      className="absolute inset-0 z-0 pointer-events-none transition-opacity duration-300"
+                      style={{ 
+                        background: 'linear-gradient(to bottom, var(--background) 0%, var(--background) 30%, transparent 100%)',
+                        opacity: scrollOpacity
+                      }}
+                    />
+
+                    {/* Main Content */}
+                    <div className="relative z-10 w-full max-w-3xl mx-auto px-8 space-y-6">
+                      {/* Greeting */}
+                      <div className="flex flex-col items-center space-y-3">
+                        <Sun className="h-10 w-10 text-orange-400" />
+                        <h1 className="text-4xl font-semibold text-center text-black dark:text-white">
                           {getGreeting()}, {userData?.firstName || "there"}
                         </h1>
-                      </div>
+                        </div>
 
-                      <Card className="border-border bg-card/50 p-4 transition-all duration-300 ease-in-out">
-                        <div className="space-y-4">
-                          <div className="border rounded-lg border-border p-3 space-y-3">
+                      {/* Quick Prompts */}
+                          <div className="flex flex-wrap gap-2">
+                        {quickPrompts.map((prompt, index) => (
+                          <button
+                                key={index}
+                            onClick={() => handleQuickPrompt(prompt.text)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent/50"
+                          >
+                            {prompt.icon}
+                            {prompt.text}
+                          </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                ) : (
+                  <div className="flex flex-col h-full overscroll-none overflow-hidden">
+                    {/* Messages Area */}
+                    <div className="flex-1 overflow-y-auto overscroll-none">
+                      <div className="flex flex-col gap-6 py-12 px-8 max-w-4xl mx-auto overscroll-none">
+                        {messages.map((message, index) => (
+                          <MessageContainer
+                            key={message.id}
+                            message={message}
+                            userData={userData || undefined}
+                            onRegenerate={() => handleRegenerateMessage(message.id)}
+                            isRegenerating={regeneratingIndex === index}
+                            onEditEmail={() => handleEditEmail(message.id)}
+                            onSendEmail={() => handleSendEmail(message.id)}
+                            onEndCall={() => handleEndCall(message.id)}
+                            onReturnToChat={handleReturnToChat}
+                            isLastMessage={index === messages.length - 1}
+                          />
+                        ))}
+
+                        {messages.length === 0 && isChatExpanded && null}
+
+                        {isLoading && (
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
+                            <span>Thinking</span>
+                          </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Message Prompt Container */}
+                <div className="sticky bottom-0 w-full bg-background/80 backdrop-blur-sm z-50">
+                  <div className="w-full px-8 pt-4 pb-8 max-w-3xl mx-auto">
+                        <Card className="rounded-xl overflow-visible bg-background/30 border-0 shadow-lg backdrop-blur-sm">
+                          <div className="p-2">
                             <div className="relative">
                               <Textarea
-                                placeholder="How can I help you today?"
+                                placeholder="Ask anything"
                                 value={input}
                                 onChange={(e) => {
                                   setInput(e.target.value)
-                                  // Auto-resize the textarea
                                   e.target.style.height = 'auto'
                                   e.target.style.height = e.target.scrollHeight + 'px'
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault()
-                                    setIsChatExpanded(true)
-                                    handleSendMessage(input)
+                                    if (!isLoading && !typingMessageIndex) {
+                                      handleSendMessage(input)
+                                    }
                                   }
                                 }}
-                                className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden pr-12"
+                                className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden w-full"
+                                disabled={typingMessageIndex !== null}
                                 rows={1}
                               />
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-primary/10 hover:bg-primary/20"
-                                onClick={() => {
-                                  setIsChatExpanded(true)
-                                  handleSendMessage(input)
-                                }}
-                                disabled={!input.trim() || isLoading}
-                              >
-                                <Send className="h-5 w-5" />
-                              </Button>
                             </div>
-
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between gap-2 mt-2">
                               <TooltipProvider delayDuration={0}>
                                 <div className="flex items-center gap-2">
                                   <Tooltip>
@@ -730,250 +998,185 @@ export default function AssistantPage() {
                                       <p>Use StarlisThink</p>
                                     </TooltipContent>
                                   </Tooltip>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5"
+                                        >
+                                          {selectedModel ? (
+                                            <>
+                                              {allModels.find(model => model.id === selectedModel)?.icon}
+                                              <span className="text-sm">{selectedModel}</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <BrainCircuit className="h-4 w-4" />
+                                              <span className="text-sm">Select Model</span>
+                                            </>
+                                          )}
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="start" className="w-64">
+                                        {allModels.slice(0, 3).map((model) => (
+                                          <DropdownMenuItem
+                                            key={model.id}
+                                            onClick={() => setSelectedModel(model.id)}
+                                            className="flex items-start gap-2"
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              {model.icon}
+                                              <div>
+                                                <div className="font-medium">{model.name}</div>
+                                                <div className="text-xs text-muted-foreground">{model.description}</div>
                                 </div>
+                                            </div>
+                                          </DropdownMenuItem>
+                                        ))}
+                                        <DropdownMenuItem
+                                          onClick={() => setIsModelDrawerOpen(true)}
+                                          className="flex items-center justify-between text-muted-foreground"
+                                        >
+                                          <span>View more models</span>
+                                          <ArrowRight className="h-4 w-4" />
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" sideOffset={5}>
+                                    <p>Change model</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 rounded-full hover:bg-muted/80"
+                                        >
+                                          <Settings className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-64">
+                                        <div className="flex items-center justify-between px-2 py-1.5">
+                                          <span className="text-sm">Require confirmation before taking actions</span>
+                                          <Switch
+                                            checked={requireConfirmation}
+                                            onCheckedChange={setRequireConfirmation}
+                                          />
+                                        </div>
+                                        <DropdownMenuItem
+                                          onClick={() => setIsSettingsDrawerOpen(true)}
+                                          className="flex items-center justify-between text-muted-foreground"
+                                        >
+                                          <span>View more settings</span>
+                                          <ArrowRight className="h-4 w-4" />
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" sideOffset={5}>
+                                    <p>Quick settings</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </TooltipProvider>
                             </div>
-                          </div>
+                              </TooltipProvider>
 
-                          <div className="flex gap-2">
-                            <Select value={selectedModel} onValueChange={setSelectedModel}>
-                              <SelectTrigger className="w-[200px] border-input bg-background">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                                <SelectItem value="claude-3-7-sonnet-latest">Claude 3.7 Sonnet</SelectItem>
-                                <SelectItem value="claude-3-5-haiku-latest">Claude 3.5 Haiku</SelectItem>
-                                <SelectItem value="claude-3-opus-20240229">Claude 3.7 Opus</SelectItem>
-                              </SelectContent>
-                            </Select>
-
-                            <Select value={selectedStyle} onValueChange={setSelectedStyle}>
-                              <SelectTrigger className="w-[150px] border-input bg-background">
-                                <SelectValue placeholder="Choose style" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="balanced">Balanced</SelectItem>
-                                <SelectItem value="creative">Creative</SelectItem>
-                                <SelectItem value="precise">Precise</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm">
-                              <span>Collaborate with your assistant using documents, images, and more</span>
-                              <div className="flex gap-2">
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <Paperclip className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                              {quickActions.map((action, index) => (
-                                <Button
-                                  key={index}
-                                  variant="outline"
-                                  className="border-input bg-background hover:bg-accent"
-                                  onClick={() => handleSendMessage(action.text)}
-                                >
-                                  <action.icon className={`mr-2 h-4 w-4 ${action.color}`} />
-                                  {action.text}
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-
-                      {/* Recent conversations */}
-                      <div className="mt-8">
-                        <h2 className="mb-4 text-xl font-medium">Recent conversations</h2>
-                        <div className="space-y-5">
-                          {recentConversations.length > 0 ? (
-                            recentConversations.map((conversation) => (
-                              <Card
-                                key={conversation.id}
-                                className="cursor-pointer border-neutral-800 p-3 transition-colors hover:bg-neutral-800/50"
-                                onClick={() => navigateToConversation(conversation.id)}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20"
+                                onClick={() => {
+                                  if (isLoading) {
+                                    setIsLoading(false)
+                                    setMessages(prev => prev.slice(0, -1))
+                                  } else if (typingMessageIndex !== null) {
+                                    setTypingMessageIndex(null)
+                                  } else {
+                                    handleSendMessage(input)
+                                  }
+                                }}
+                                disabled={!input.trim() && !isLoading && typingMessageIndex === null}
                               >
-                                <div className="flex justify-between">
-                                  <h3 className="font-medium text-sm">{conversation.name}</h3>
-                                  <span className="text-xs">
-                                    {conversation.timeLastModified?.toDate() 
-                                      ? formatRelativeTime(conversation.timeLastModified.toDate().toISOString())
-                                      : 'Just now'}
-                                  </span>
-                                </div>
-                                <p className="mt-1 text-sm line-clamp-1 text-muted-foreground">
-                                  {format(conversation.timeLastModified?.toDate() || new Date(), "MMM d, yyyy 'at' h:mm a")}
-                                </p>
-                              </Card>
-                            ))
-                          ) : (
-                            <p className="text-center text-muted-foreground">No recent conversations</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col h-full overscroll-none overflow-hidden">
-                      {/* Messages Area */}
-                      <div className="flex-1 overflow-y-auto overscroll-none">
-                        <div className="flex flex-col gap-6 py-12 px-8 max-w-4xl mx-auto overscroll-none">
-                          {messages.map((message, index) => (
-                            <MessageContainer
-                              key={message.id}
-                              message={message}
-                              userData={userData || undefined}
-                              onRegenerate={() => handleRegenerateMessage(message.id)}
-                              isRegenerating={regeneratingIndex === index}
-                              onEditEmail={() => handleEditEmail(message.id)}
-                              onSendEmail={() => handleSendEmail(message.id)}
-                              onEndCall={() => handleEndCall(message.id)}
-                              onReturnToChat={handleReturnToChat}
-                              isLastMessage={index === messages.length - 1}
-                            />
-                          ))}
-
-                          {messages.length === 0 && isChatExpanded && null}
-
-                          {isLoading && (
-                            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                              <div className="h-2 w-2 rounded-full bg-muted-foreground animate-pulse" />
-                              <span>Thinking</span>
+                                {isLoading || typingMessageIndex !== null ? (
+                                  <Square className="h-4 w-4" />
+                                ) : (
+                                  <ArrowUp className="h-4 w-4" />
+                                )}
+                              </Button>
                             </div>
-                          )}
-                          <div ref={messagesEndRef} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </main>
-
-              {/* Fixed Input Area - Always at bottom */}
-              <div className={cn(
-                "sticky bottom-0 w-full bg-background/80 backdrop-blur-sm z-50",
-                isMobileMode ? "pb-32" : "pb-6"
-              )}>
-                <div className="w-full px-12 pt-4 max-w-3xl mx-auto">
-                  <Card className="rounded-xl overflow-visible bg-background/30 border-0 shadow-lg backdrop-blur-sm">
-                    <div className="p-2">
-                      <div className="relative">
-                        <Textarea
-                          placeholder="Ask anything"
-                          value={input}
-                          onChange={(e) => {
-                            setInput(e.target.value)
-                            e.target.style.height = 'auto'
-                            e.target.style.height = e.target.scrollHeight + 'px'
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault()
-                              if (!isLoading && !typingMessageIndex) {
-                                handleSendMessage(input)
-                              }
-                            }
-                          }}
-                          className="border-0 bg-transparent text-base text-foreground placeholder:text-muted-foreground rounded-lg min-h-[44px] max-h-[200px] resize-none overflow-hidden w-full"
-                          disabled={typingMessageIndex !== null}
-                          rows={1}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-2 mt-2">
-                        <TooltipProvider delayDuration={0}>
-                          <div className="flex items-center gap-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 rounded-full hover:bg-muted/80"
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" sideOffset={5}>
-                                <p>Attach files</p>
-                              </TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={cn(
-                                    "h-8 w-8 rounded-full hover:bg-muted/80 transition-colors",
-                                    isWebSearchEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                  )}
-                                  onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
-                                >
-                                  <Globe className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" sideOffset={5}>
-                                <p>Search the internet</p>
-                              </TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className={cn(
-                                    "h-8 rounded-full px-3 hover:bg-muted/80 gap-1.5 transition-colors",
-                                    isReasonEnabled && "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30"
-                                  )}
-                                  onClick={() => setIsReasonEnabled(!isReasonEnabled)}
-                                >
-                                  <LightbulbIcon className="h-4 w-4" />
-                                  <span className="text-sm">Reason</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" sideOffset={5}>
-                                <p>Use StarlisThink</p>
-                              </TooltipContent>
-                            </Tooltip>
                           </div>
-                        </TooltipProvider>
-
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20"
-                          onClick={() => {
-                            if (isLoading) {
-                              setIsLoading(false)
-                              setMessages(prev => prev.slice(0, -1))
-                            } else if (typingMessageIndex !== null) {
-                              setTypingMessageIndex(null)
-                            } else {
-                              handleSendMessage(input)
-                            }
-                          }}
-                          disabled={!input.trim() && !isLoading && typingMessageIndex === null}
-                        >
-                          {isLoading || typingMessageIndex !== null ? (
-                            <Square className="h-4 w-4" />
-                          ) : (
-                            <ArrowUp className="h-4 w-4" />
-                          )}
-                        </Button>
+                        </Card>
                       </div>
                     </div>
-                  </Card>
-                </div>
               </div>
-            </div>
-          </NoiseTexture>
-        </div>
+            </main>
+          </div>
+        </NoiseTexture>
       </div>
-    </SidebarProvider>
+
+      {/* Right Canvas */}
+      <RightCanvas isOpen={isRightSidebarOpen} onClose={() => setIsRightSidebarOpen(false)}>
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Canvas Content</h3>
+          <p>Add your canvas content here</p>
+        </div>
+      </RightCanvas>
+
+      <RightSideDrawer
+        isOpen={isModelDrawerOpen}
+        onClose={() => setIsModelDrawerOpen(false)}
+        title="Model Library"
+      >
+        <ModelLibrary
+          models={allModels}
+          onSelectModel={(modelId) => {
+            setSelectedModel(modelId)
+            setIsModelDrawerOpen(false)
+          }}
+        />
+      </RightSideDrawer>
+
+      <RightSideDrawer
+        isOpen={isSettingsDrawerOpen}
+        onClose={() => setIsSettingsDrawerOpen(false)}
+        title="Quick Settings"
+      >
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search settings..."
+              className="flex-1"
+            />
+          </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm">Require confirmation before taking actions</span>
+                <p className="text-xs text-muted-foreground">The assistant will confirm with you before taking any irreversible actions</p>
+              </div>
+              <Switch
+                checked={requireConfirmation}
+                onCheckedChange={setRequireConfirmation}
+              />
+            </div>
+            {/* Add more settings here */}
+          </div>
+        </div>
+      </RightSideDrawer>
+    </div>
   )
 }
 

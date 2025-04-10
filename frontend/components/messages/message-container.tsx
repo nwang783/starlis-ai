@@ -5,7 +5,7 @@ import { RefreshCw, Square, Copy, Volume2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
-import { useState } from "react"
+import { useState, ReactNode, isValidElement, Children } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import remarkMath from 'remark-math'
@@ -147,7 +147,7 @@ export function MessageContainer({
                 )
               },
               math: ({ value }: MathComponentProps) => (
-                <div className="math math-display">
+                <div className="math math-display my-4" style={{ display: 'block' }}>
                   {value}
                 </div>
               ),
@@ -156,7 +156,24 @@ export function MessageContainer({
                   {value}
                 </span>
               ),
-              p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+              p: ({ children }) => {
+                // Check if the paragraph contains a math display block
+                const hasMathDisplay = Children.toArray(children).some(
+                  child => isValidElement(child) && 
+                    typeof child.props === 'object' && 
+                    child.props !== null &&
+                    'className' in child.props &&
+                    typeof child.props.className === 'string' &&
+                    child.props.className.includes('math-display')
+                )
+                
+                // If it contains a math display block, don't wrap in p tag
+                if (hasMathDisplay) {
+                  return <div className="mb-4 last:mb-0">{children}</div>
+                }
+                
+                return <p className="mb-4 last:mb-0">{children}</p>
+              },
               h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
               h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{children}</h2>,
               h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{children}</h3>,

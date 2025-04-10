@@ -24,12 +24,12 @@ export function NoiseTexture({ className, opacity = 0.025, children }: NoiseText
     <div className={cn("relative", className)}>
       {children}
       <div
-        className="absolute inset-0 pointer-events-none z-10"
+        className="absolute inset-0 pointer-events-none z-0"
         style={{
           backgroundImage: "url(/noise.png)",
           backgroundRepeat: "repeat",
-          backgroundSize: "auto",
-          opacity: opacity,
+          backgroundSize: "200px 200px",
+          opacity: 0.1,
         }}
         aria-hidden="true"
       />
