@@ -3,6 +3,12 @@ import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Input } from "@/components/ui/input"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 interface Model {
   id: string
@@ -19,8 +25,8 @@ interface ModelLibraryProps {
 }
 
 export function ModelLibrary({ models, onSelectModel }: ModelLibraryProps) {
-  const [expandedCompanies, setExpandedCompanies] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   // Filter models based on search query
   const filteredModels = models.filter((model) =>
@@ -34,29 +40,21 @@ export function ModelLibrary({ models, onSelectModel }: ModelLibraryProps) {
     new Set(filteredModels.map((model) => model.company))
   )
 
+  // Set expanded accordion to the company with the selected model
+  useEffect(() => {
+    const selectedModel = models.find((model) => model.isSelected)
+    if (selectedModel) {
+      setExpandedItems([selectedModel.company])
+    }
+  }, [models])
+
   // Auto-expand companies when searching
   useEffect(() => {
     if (searchQuery) {
       const companiesWithMatches = filteredCompanies
-      setExpandedCompanies(companiesWithMatches)
+      setExpandedItems(companiesWithMatches)
     }
   }, [searchQuery, filteredCompanies])
-
-  // Auto-expand the company of the selected model
-  useEffect(() => {
-    const selectedModel = models.find((model) => model.isSelected)
-    if (selectedModel && !expandedCompanies.includes(selectedModel.company)) {
-      setExpandedCompanies((prev) => [...prev, selectedModel.company])
-    }
-  }, [models, expandedCompanies])
-
-  const toggleCompany = (company: string) => {
-    setExpandedCompanies((prev) =>
-      prev.includes(company)
-        ? prev.filter((c) => c !== company)
-        : [...prev, company]
-    )
-  }
 
   const getCompanyIcon = (company: string) => {
     switch (company) {
@@ -124,25 +122,21 @@ export function ModelLibrary({ models, onSelectModel }: ModelLibraryProps) {
         />
       </div>
       <div className="flex-1 overflow-y-auto p-4">
-        {filteredCompanies.map((company) => (
-          <div key={company} className="mb-4">
-            <button
-              onClick={() => toggleCompany(company)}
-              className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent"
-            >
-              <div className="flex items-center gap-2">
-                {getCompanyIcon(company)}
-                <span>{company}</span>
-              </div>
-              {expandedCompanies.includes(company) ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </button>
-
-            {expandedCompanies.includes(company) && (
-              <div className="mt-2 space-y-1">
+        <Accordion 
+          type="multiple" 
+          value={expandedItems} 
+          onValueChange={setExpandedItems}
+          className="space-y-2"
+        >
+          {filteredCompanies.map((company) => (
+            <AccordionItem key={company} value={company} className="border-none">
+              <AccordionTrigger className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-sm font-medium hover:bg-accent hover:no-underline">
+                <div className="flex items-center gap-2">
+                  {getCompanyIcon(company)}
+                  <span>{company}</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="mt-2 space-y-1">
                 {filteredModels
                   .filter((model) => model.company === company)
                   .map((model) => (
@@ -166,10 +160,10 @@ export function ModelLibrary({ models, onSelectModel }: ModelLibraryProps) {
                       )}
                     </button>
                   ))}
-              </div>
-            )}
-          </div>
-        ))}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </div>
     </div>
   )

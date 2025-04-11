@@ -120,6 +120,7 @@ export default function AssistantPage() {
   const [scrollOpacity, setScrollOpacity] = useState(1)
   const mainRef = useRef<HTMLElement | null>(null)
   const [isChatInitialized, setIsChatInitialized] = useState(false)
+  const [allowModelSwitching, setAllowModelSwitching] = useState(false)
 
   // Check if OpenAI API is working
   useEffect(() => {
@@ -1069,10 +1070,22 @@ export default function AssistantPage() {
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" className="w-64">
                                         <div className="flex items-center justify-between px-2 py-1.5">
-                                          <span className="text-sm">Require confirmation before taking actions</span>
+                                          <div className="space-y-0.5">
+                                            <span className="text-sm">Require confirmation before taking actions</span>
+                                          </div>
                                           <Switch
                                             checked={requireConfirmation}
                                             onCheckedChange={setRequireConfirmation}
+                                          />
+                                        </div>
+                                        <div className="flex items-center justify-between px-2 py-1.5">
+                                          <div className="space-y-0.5">
+                                            <span className="text-sm">Allow the assistant to switch the active model when needed</span>
+                                          </div>
+                                          <Switch
+                                            checked={allowModelSwitching}
+                                            onCheckedChange={setAllowModelSwitching}
+                                            className="ml-2"
                                           />
                                         </div>
                                         <DropdownMenuItem
@@ -1172,7 +1185,16 @@ export default function AssistantPage() {
                 onCheckedChange={setRequireConfirmation}
               />
             </div>
-            {/* Add more settings here */}
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm">Allow the assistant to switch the active model when needed</span>
+                <p className="text-xs text-muted-foreground">The assistant can automatically switch to a more suitable model for specific tasks</p>
+              </div>
+              <Switch
+                checked={allowModelSwitching}
+                onCheckedChange={setAllowModelSwitching}
+              />
+            </div>
           </div>
         </div>
       </RightSideDrawer>

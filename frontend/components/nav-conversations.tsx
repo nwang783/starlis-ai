@@ -240,7 +240,7 @@ export function NavConversations() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
-                            className="w-48 rounded-lg"
+                            className="w-48 rounded-lg z-[100]"
                             side={isMobile ? "bottom" : "right"}
                             align={isMobile ? "end" : "start"}
                           >
